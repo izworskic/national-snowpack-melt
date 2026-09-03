@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Snowpack & Snowmelt Conditions | Chris Izworski</title>
+<meta name="description" content="Check nearby measured snow depth and SWE, recent pack change, and a 48-hour weather-driven melt or refreeze outlook using NOAA, NRCS and NWS data.">
+<link rel="canonical" href="https://chrisizworski.com/national-tools/snow/"><meta name="robots" content="index,follow,max-image-preview:large">
+<meta property="og:type" content="website"><meta property="og:title" content="Snowpack & Snowmelt Conditions"><meta property="og:description" content="Nearby measured snowpack first, then 48-hour melt, freeze-thaw and snowfall context."><meta property="og:url" content="https://chrisizworski.com/national-tools/snow/">
+<link rel="stylesheet" href="/assets/national-tools.css?v=20260902-snow1">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://chrisizworski.com/#person","name":"Chris Izworski","url":"https://chrisizworski.com/"},{"@type":"WebSite","@id":"https://chrisizworski.com/#website","url":"https://chrisizworski.com/","name":"Chris Izworski","author":{"@id":"https://chrisizworski.com/#person"}},{"@type":"SoftwareApplication","@id":"https://chrisizworski.com/national-tools/snow/#page","url":"https://chrisizworski.com/national-tools/snow/","name":"Snowpack & Snowmelt Conditions","description":"A U.S. snow decision tool combining nearby NOHRSC and NRCS measured snowpack with the local NWS hourly forecast and transparent melt/refreeze interpretation.","dateModified":"2026-09-02","author":{"@id":"https://chrisizworski.com/#person"},"isPartOf":{"@id":"https://chrisizworski.com/#website"}}]}</script></head>
+<body><header class="site-head"><div class="wrap head-in"><a class="brand" href="/">Chris Izworski</a><nav class="nav" aria-label="Primary"><a href="/national-tools/">U.S. Outdoor Tools</a><a href="/tools/">Michigan Tools</a></nav></div></header>
+<main>
+<section class="hero"><div class="wrap"><div class="eyebrow">Snowpack + melt · United States</div><h1>Snowpack & Snowmelt Conditions</h1><p class="lede">See nearby measured snow depth and snow-water equivalent first, then what changed and whether the next 48 hours favor melt, refreeze, retention or new snow.</p></div></section>
+<section class="section"><div class="wrap">
+<form id="loc" class="locator"><input aria-label="U.S. city or ZIP" placeholder="City or ZIP" required><button class="btn" type="submit">Check snowpack</button><button type="button" class="secondary-btn geo-btn" data-use-location>Use my location</button></form>
+<p class="near-me-note">Measured station data is shown with distance. Stations farther than 60 miles are regional context only and do not drive a local pack-phase conclusion.</p>
+<p class="location-privacy">Optional device location is rounded before lookup and is not included in analytics.</p><div class="status" aria-live="polite"></div>
+<div id="result" class="result" hidden>
+  <div class="result-head"><span id="level" class="pill"></span><span id="confidence" class="pill"></span></div>
+  <div id="answer" class="answer"></div><p id="detail"></p>
+  <div class="action-grid"><div class="mini-card"><span class="tool-kicker">What changed?</span><strong>Measured pack</strong><small id="changed">—</small></div><div class="mini-card"><span class="tool-kicker">What happens next?</span><strong>Next 48 hours</strong><small id="next">—</small></div></div>
+  <div class="decision-panel"><div class="section-head"><div><span class="tool-kicker">Measured now</span><h2>Nearby snowpack observations</h2></div><p class="small">Station observations are not exact conditions at the searched point.</p></div><div id="pack-grid" class="grid"></div></div>
+  <div class="decision-panel"><div class="section-head"><div><span class="tool-kicker">Forecast driver</span><h2>48-hour freeze, thaw, rain and snow pattern</h2></div></div><div id="forecast-grid" class="metrics"></div><p id="forecast-extra" class="small"></p></div>
+  <div class="truth-box"><strong>Decision boundary:</strong> “Melt pressure” is our transparent interpretation of nearby measured pack plus the local NWS forecast. It is not a NOAA/NRCS snowmelt forecast, avalanche report, groomed-trail report, road-access report, or universal go/no-go recreation score.</div>
+  <p id="updated" class="small"></p>
+</div>
+</div></section>
+<section class="section"><div class="wrap grid">
+<div class="source-box"><h2>NOAA/NOHRSC: national measured context</h2><p>NOHRSC publishes national station reports for snow depth and snow-water equivalent with coordinates. These observations are explicitly unofficial and provisional, so the tool shows station distance and never treats them as exact local truth.</p></div>
+<div class="source-box"><h2>NRCS SNOTEL: deeper mountain-station truth</h2><p>Where SNOTEL exists, AWDB adds snow depth and SWE history from a dedicated snow-monitoring station. SNOTEL is valuable but regionally concentrated, so lack of SNOTEL is not interpreted as lack of snow.</p></div>
+<div class="source-box"><h2>NWS: what the atmosphere does next</h2><p>The local NWS hourly forecast supplies the next 48 hours of temperature and precipitation wording. The tool counts above-freezing, freezing, rain-signal and snow-signal hours without inventing precipitation totals.</p></div>
+<div class="source-box"><h2>What this does not know</h2><p>Trail grooming, avalanche danger, road closures, drifting, shade, aspect and elevation differences can dominate a real outing. Verify those locally before travel.</p></div>
+</div></section>
+<section class="section"><div class="wrap"><div class="handoff"><strong>Related decisions:</strong> Snowmelt can matter downstream, but this tool does not predict river response. Open <a href="/national-tools/rivers/">U.S. River Conditions</a> for measured flow and official river forecasts. Planning for December 25? The <a href="/national-tools/white-christmas/">White Christmas tool</a> uses this snowpack signal as one ingredient, alongside history and forecasts.</div></div></section>
+</main>
+<footer class="footer"><div class="wrap">© 2026 <a href="/">Chris Izworski</a> · NOAA/NOHRSC, USDA NRCS and NWS remain separately labeled.</div></footer>
+<script src="/assets/national-tools.js?v=20260902-placebar1"></script>
+<script>
+document.addEventListener("DOMContentLoaded",function(){
+  const N=window.NationalTools,form=document.getElementById("loc");
+  function metric(v,label){return '<div class="metric"><b>'+N.esc(v)+'</b><span>'+N.esc(label)+'</span></div>'}
+  function obsCard(title,o,note){
+    if(!o)return '<div class="source-box"><span class="tool-kicker">'+N.esc(title)+'</span><h3>Unavailable nearby</h3><p>'+N.esc(note||"No measured station was returned within the context radius.")+'</p></div>';
+    const change=o.change_24h!=null?((o.change_24h>0?"+":"")+o.change_24h.toFixed(1)+" "+(o.unit||"in")+" / ~24h"):"change unavailable";
+    return '<div class="source-box"><span class="tool-kicker">'+N.esc(title)+'</span><h3>'+N.esc(o.value+" "+(o.unit||"in"))+'</h3><p>'+N.esc(o.name+" · "+o.distance_miles+" mi away · "+change)+'</p><small>Observed '+N.esc(N.fmtDate(o.observed_at))+'</small></div>';
+  }
+  function snotelCard(s){
+    if(!s||!s.station)return '<div class="source-box"><span class="tool-kicker">NRCS SNOTEL</span><h3>No nearby SNOTEL station</h3><p>SNOTEL is regional; this is not evidence of no snow.</p></div>';
+    const bits=[];
+    if(s.snow_depth)bits.push("Depth "+s.snow_depth.value+" "+s.snow_depth.unit+(s.snow_depth.change_3d!=null?" · "+(s.snow_depth.change_3d>0?"+":"")+s.snow_depth.change_3d+" recent change":""));
+    if(s.swe)bits.push("SWE "+s.swe.value+" "+s.swe.unit+(s.swe.change_3d!=null?" · "+(s.swe.change_3d>0?"+":"")+s.swe.change_3d+" recent change":""));
+    return '<div class="source-box"><span class="tool-kicker">NRCS SNOTEL</span><h3>'+N.esc(s.station.name)+'</h3><p>'+N.esc(bits.join(" · ")||"Snow values unavailable")+'</p><small>'+N.esc(s.station.distance_miles+" mi away · "+(s.station.elevation_ft||"")+" ft elevation")+'</small></div>';
+  }
+  async function run(loc){
+    const params=new URLSearchParams({lat:loc.latitude,lon:loc.longitude});if(loc.stateCode)params.set("state",loc.stateCode);
+    const r=await fetch("/api/national-snow?"+params.toString());
+    const d=await N.readJsonResponse(r,"Snowpack data unavailable");
+    document.getElementById("result").hidden=false;
+    document.getElementById("level").textContent=(d.decision.level||"context").replace(/-/g," ");
+    document.getElementById("confidence").textContent=(d.decision.confidence||"unknown")+" confidence";
+    document.getElementById("answer").textContent=d.decision.headline+" — "+N.label(loc);
+    document.getElementById("detail").textContent=d.decision.detail;
+    document.getElementById("changed").textContent=d.decision.what_changed;
+    document.getElementById("next").textContent=d.decision.what_next;
+    const noaa=d.nohrsc||{};
+    document.getElementById("pack-grid").innerHTML=obsCard("NOHRSC snow depth",noaa.depth)+obsCard("NOHRSC snow-water equivalent",noaa.swe)+snotelCard(d.snotel);
+    const f=d.forecast_48h||{};
+    document.getElementById("forecast-grid").innerHTML=metric(f.max_temperature_f==null?"Unavailable":f.max_temperature_f+"°F","48h high")+metric(f.min_temperature_f==null?"Unavailable":f.min_temperature_f+"°F","48h low")+metric((f.above_freezing_hours||0)+" hr","above freezing")+metric((f.freezing_hours||0)+" hr","at/below freezing")+metric((f.rain_signal_hours||0)+" hr","rain signal")+metric((f.snow_signal_hours||0)+" hr","snow signal");
+    const extra=[];if(f.first_thaw_time)extra.push("First forecast thaw crossing "+N.fmtInZone(f.first_thaw_time,loc.timeZone,{weekday:"short",hour:"numeric"}));if(f.first_refreeze_time)extra.push("First forecast refreeze crossing "+N.fmtInZone(f.first_refreeze_time,loc.timeZone,{weekday:"short",hour:"numeric"}));
+    document.getElementById("forecast-extra").textContent=extra.join(" · ")||"No freeze/thaw crossing identified in the available 48-hour series.";
+    const stale=(d.sources||[]).filter(function(s){return s.stale===true}).length;
+    document.getElementById("updated").textContent="Retrieved "+N.fmtDate(d.retrieved_at)+(d.degraded?" · one or more source families degraded":"")+(stale?" · "+stale+" stale source family":"");
+    if(typeof N.track==="function")N.track("National Snow Result",{relevant:Boolean(d.snow_relevant),pack:Boolean(d.pack_available),level:d.decision.level||"unknown",sources_available:(d.sources||[]).filter(function(s){return s.available!==false}).length});
+  }
+  N.bind(form,run);const q=new URLSearchParams(location.search).get("q");if(q){form.querySelector("input").value=q;form.requestSubmit();}
+});
+</script>
+</body></html>
