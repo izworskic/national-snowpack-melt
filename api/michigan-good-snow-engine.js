@@ -160,8 +160,8 @@ function fusePack(grid, observed, priorObserved) {
   return {
     depth:round1(modelDepth), confidence, source:"nohrsc-snodas-1km", model_depth:round1(modelDepth), swe_inches:round1(swe),
     station_depth:round1(stationDepth), station_confidence:observed&&observed.confidence||"low",
-    station_count:observed&&observed.station_count||0, distance_miles:observed&&observed.distance_miles??null,
-    spread:observed&&observed.spread??null, observed_at:observed&&observed.observed_at||null,
+    station_count:observed&&observed.station_count||0, distance_miles:observed ? (observed.distance_miles ?? null) : null,
+    spread:observed ? (observed.spread ?? null) : null, observed_at:observed&&observed.observed_at||null,
     stations:observed&&observed.stations||[], validation_delta:delta, validation,
     change_24h:change, change_basis:change==null?null:"station-consensus"
   };
