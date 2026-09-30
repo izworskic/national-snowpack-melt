@@ -44,6 +44,7 @@ const PROFILES = {
 };
 
 function finite(v, min = -Infinity, max = Infinity) {
+  if (v == null || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) && n >= min && n <= max ? n : null;
 }
