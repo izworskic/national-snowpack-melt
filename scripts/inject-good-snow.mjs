@@ -14,6 +14,9 @@ html=html
   .replace('"name":"Snowpack & Snowmelt Conditions"','"name":"Where Is the Good Snow? Michigan Snow Finder"')
   .replace('"description":"A U.S. snow decision tool combining nearby NOHRSC and NRCS measured snowpack with the local NWS hourly forecast and transparent melt/refreeze interpretation."','"description":"A Michigan winter-trip decision tool that ranks natural-snow destinations by measured snow depth, recent snowfall evidence, forecast survival, drive time and observation confidence, while retaining a nationwide point snowpack checker."')
   .replace('"dateModified":"2026-09-02"','"dateModified":"2026-09-30"')
+  .replace('<meta name="twitter:title" content="Snowpack & Snowmelt Conditions">','<meta name="twitter:title" content="Where Is the Good Snow? Michigan Snow Finder">')
+  .replace('<meta name="twitter:description" content="Nearby measured snowpack first, then 48-hour melt, freeze-thaw and snowfall context.">','<meta name="twitter:description" content="Compare Michigan snow destinations by current ground snow, fresh-snow evidence, forecast survival, drive time and confidence.">')
+  .replace('&rsaquo; Snowpack & Snowmelt Conditions</div><div class="eyebrow">Snowpack + melt · United States</div>','&rsaquo; Good Snow Finder & Snowpack</div><div class="eyebrow">Michigan trip finder + U.S. point snowpack</div>')
   .replace("<h1>Snowpack & Snowmelt Conditions</h1>","<h1>Where Is the Good Snow?</h1>")
   .replace("<p class=\"lede\">See nearby measured snow depth and snow-water equivalent first, then what changed and whether the next 48 hours favor melt, refreeze, retention or new snow.</p>","<p class=\"lede\">Tell us where you are, how far you will drive and what kind of winter day you want. We compare Michigan destinations so you do not have to interpret a snow map yourself.</p>")
   .replace("</head>",'<link rel="stylesheet" href="/assets/michigan-good-snow.css?v=20260930-1">\n</head>');
@@ -35,6 +38,7 @@ const section=`<section class="section" id="best-snow"><div class="wrap">
   <div id="goodSnowList" class="gs-list"></div><p id="goodSnowFreshness" class="small"></p>
 </div>
 <div class="gs-method"><strong>What the score means:</strong> current ground snow carries the most weight because fresh flakes cannot rescue a bare base. Recent snowfall can improve a destination; forecast warm rain can sharply reduce it. Drive time filters the candidate set instead of making farther snow look artificially better. Sparse observations cap confidence and the score. XC results describe natural-snow potential only—verify grooming before leaving.</div>
+<p class="small"><strong>Use the right winter tool:</strong> <a href="/michigan-snow-totals/">Michigan Snow Totals</a> answers what just fell; <a href="/michigan-cross-country-skiing/">Michigan Cross-Country Skiing</a> owns groomed XC conditions; <a href="/snowmobile/">Michigan Snowmobile</a> owns trail-status decisions.</p>
 </div></section>`;
 
 const firstSection='<section class="section"><div class="wrap">\n<form id="loc"';
