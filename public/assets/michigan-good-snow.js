@@ -1,7 +1,7 @@
 (function(){
 "use strict";
 function ready(fn){if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",fn);else fn();}
-function esc(v){return String(v==null?"":v).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;","&gt;":"&gt;",'"':"&quot;"}[c]||c;});}
+function esc(v){return String(v==null?"":v).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function tripHours(value){
   if(value==="today")return 12;
   const now=new Date(), target=new Date(now);
