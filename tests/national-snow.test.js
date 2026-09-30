@@ -96,10 +96,12 @@ test("forecast snow without measured pack stays low confidence and explicit",()=
   assert.match(d.headline,/current measured pack is not verified/i);
 });
 
-test("snow canonical exposes source truth, safety boundaries and privacy-safe analytics",()=>{
+test("snow canonical exposes current metadata, source truth, safety boundaries and privacy-safe analytics",()=>{
   const html=fs.readFileSync(path.join(__dirname,"../public/national-tools/snow/index.html"),"utf8");
   assert.match(html,/<link rel="canonical" href="https:\/\/chrisizworski\.com\/national-tools\/snow\/">/);
-  assert.match(html,/"dateModified":"2026-09-02"/);
+  assert.match(html,/"dateModified":"2026-09-30"/);
+  assert.match(html,/id="goodSnowForm"/);
+  assert.match(html,/Where Is the Good Snow\?/);
   assert.match(html,/unofficial and provisional/i);
   assert.match(html,/not a NOAA\/NRCS snowmelt forecast/i);
   assert.match(html,/avalanche/i);
