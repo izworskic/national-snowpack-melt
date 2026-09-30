@@ -2,13 +2,16 @@ import fs from "node:fs";
 import path from "node:path";
 
 const file=path.join(process.cwd(),"public/national-tools/snow/index.html");
+const owner="https://national-snowpack-melt.vercel.app";
+const jsAsset=`${owner}/assets/michigan-good-snow.js?v=20260930-4`;
+const cssAsset=`${owner}/assets/michigan-good-snow.css?v=20260930-2`;
 let html=fs.readFileSync(file,"utf8");
 const marker='id="goodSnowForm"';
 if(html.includes(marker)) {
   html=html
-    .replace('/assets/michigan-good-snow.js?v=20260930-1','/assets/michigan-good-snow.js?v=20260930-3')
-    .replace('/assets/michigan-good-snow.js?v=20260930-2','/assets/michigan-good-snow.js?v=20260930-3')
-    .replace('Find the best natural snow within your drive limit. The ranking starts with NOAA/NOHRSC 1-km modeled snow depth and SWE, checks that analysis against nearby snow-depth observations, then adds recent snowfall and asks whether rain or thaw will damage the pack before your trip.','Find the best natural snow within your drive limit. The engine first searches the reachable Michigan snow field with NOAA/NOHRSC 1-km analysis, refines the strongest zones, checks them against nearby observations, then adds recent snowfall, forecast survival and routed drive time.')
+    .replace(/(?:https:\/\/national-snowpack-melt\.vercel\.app)?\/assets\/michigan-good-snow\.js\?v=[^"']+/g,jsAsset)
+    .replace(/(?:https:\/\/national-snowpack-melt\.vercel\.app)?\/assets\/michigan-good-snow\.css\?v=[^"']+/g,cssAsset)
+    .replace('Find the best natural snow within your drive limit. The ranking starts with NOAA/NOHRSC 1-km modeled snow depth and SWE, checks that analysis against nearby snow-depth observations, then adds recent snowfall and asks whether rain or thaw will damage it before your trip.','Find the best natural snow within your drive limit. The engine first searches the reachable Michigan snow field with NOAA/NOHRSC 1-km analysis, refines the strongest zones, checks them against nearby observations, then adds recent snowfall, forecast survival and routed drive time.')
     .replace('current ground snow carries the most weight because fresh flakes cannot rescue a bare base. NOAA/NOHRSC 1-km snow analysis is the primary depth signal when available; nearby stations validate it, and disagreement lowers confidence instead of being averaged away. Recent snowfall can improve a destination; forecast warm rain can sharply reduce it. Drive time filters the candidate set instead of making farther snow look artificially better. XC results describe natural-snow potential only—verify grooming before leaving.','current ground snow carries the most weight because fresh flakes cannot rescue a bare base. The engine uses NOAA/NOHRSC 1-km snow analysis to discover strong snow zones instead of checking only preset towns, then nearby stations validate the modeled depth. Disagreement lowers confidence instead of being averaged away. Recent snowfall can improve a zone; forecast warm rain can sharply reduce it. Drive time filters the candidate set instead of making farther snow look artificially better. XC results describe natural-snow potential only—verify grooming before leaving.');
   fs.writeFileSync(file,html);
   process.exit(0);
@@ -27,7 +30,7 @@ html=html
   .replace('&rsaquo; Snowpack & Snowmelt Conditions</div><div class="eyebrow">Snowpack + melt · United States</div>','&rsaquo; Good Snow Finder & Snowpack</div><div class="eyebrow">Michigan trip finder + U.S. point snowpack</div>')
   .replace("<h1>Snowpack & Snowmelt Conditions</h1>","<h1>Where Is the Good Snow?</h1>")
   .replace("<p class=\"lede\">See nearby measured snow depth and snow-water equivalent first, then what changed and whether the next 48 hours favor melt, refreeze, retention or new snow.</p>","<p class=\"lede\">Tell us where you are, how far you will drive and what kind of winter day you want. We search the reachable Michigan snow field and return the strongest real-world snow zones instead of making you interpret a map.</p>")
-  .replace("</head>",'<link rel="stylesheet" href="/assets/michigan-good-snow.css?v=20260930-1">\n</head>');
+  .replace("</head>",`<link rel="stylesheet" href="${cssAsset}">\n</head>`);
 
 const section=`<section class="section" id="best-snow"><div class="wrap">
 <div class="section-head"><div><span class="tool-kicker">Michigan trip finder</span><h2>Best snow near you</h2></div></div>
@@ -51,5 +54,5 @@ const section=`<section class="section" id="best-snow"><div class="wrap">
 
 const firstSection='<section class="section"><div class="wrap">\n<form id="loc"';
 html=html.replace(firstSection,section+'\n<section class="section"><div class="wrap">\n<div class="section-head"><div><span class="tool-kicker">One-place check</span><h2>Check snowpack at a specific place</h2></div></div>\n<form id="loc"');
-html=html.replace("</body>",'<script src="/assets/michigan-good-snow.js?v=20260930-3"></script>\n</body>');
+html=html.replace("</body>",`<script src="${jsAsset}"></script>\n</body>`);
 fs.writeFileSync(file,html);
