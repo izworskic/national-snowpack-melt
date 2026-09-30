@@ -28,13 +28,14 @@ function resultCard(d,index){
   const map='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(mapQuery);
   const badges='<span>'+esc(d.model.quality)+' snow</span><span>'+esc(d.model.confidence)+' confidence</span>'+(spatial?'<span>spatially discovered</span>':'');
   const discoveryNote=spatial?' This location was discovered from the reachable NOAA snow field rather than selected from the preset town list.':'';
+  const mapLabel=spatial?'Open snow zone':'Open destination';
   return '<article class="gs-card'+(index===0?' gs-top':'')+'">'+
     '<div class="gs-rank"><span>'+(index+1)+'</span><div><h3>'+esc(d.name)+'</h3><p>'+esc(access)+' · '+esc(driveLabel(d.drive_minutes))+' · '+esc(travelNote)+'</p></div><div class="gs-score"><strong>'+esc(d.model.score)+'</strong><span>/100</span></div></div>'+
     '<div class="gs-badges">'+badges+'</div>'+
     '<div class="gs-metrics">'+metric(depth,depthLabel)+metric(fresh,"recent report")+metric(d.model.survival.risk,"thaw / rain risk")+metric(change,"station trend")+'</div>'+
     '<p class="gs-why"><strong>Why:</strong> '+esc(d.why)+'</p>'+
     '<details><summary>How this score was built</summary><p>Base '+esc(d.model.components.base)+' · fresh-snow evidence '+esc(d.model.components.fresh)+' · forecast survival '+esc(d.model.components.survival)+'. '+esc(swe)+' · station validation: '+esc(validation)+'. Confidence caps disagreement or sparse evidence.'+esc(discoveryNote)+'</p></details>'+
-    '<p class="gs-actions"><a href="'+map+'" rel="noopener">Open snow zone</a></p>'+
+    '<p class="gs-actions"><a href="'+map+'" rel="noopener">'+mapLabel+'</a></p>'+
   '</article>';
 }
 ready(function(){
