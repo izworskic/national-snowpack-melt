@@ -6,11 +6,23 @@ const path=require("node:path");
 const root=path.join(__dirname,"..");
 const owner="https://national-snowpack-melt.vercel.app";
 
-test("generated snow page loads Good Snow assets from the owning deployment",()=>{
+test("national snow page remains a national point snowpack tool",()=>{
   const html=fs.readFileSync(path.join(root,"public/national-tools/snow/index.html"),"utf8");
-  assert.match(html,new RegExp(owner.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"/assets/michigan-good-snow\\.js\\?v=20260930-4"));
-  assert.match(html,new RegExp(owner.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"/assets/michigan-good-snow\\.css\\?v=20260930-2"));
-  assert.doesNotMatch(html,/src="\/assets\/michigan-good-snow\.js/);
+  assert.match(html,/canonical" href="https:\/\/chrisizworski\.com\/national-tools\/snow\//);
+  assert.match(html,/Snowpack & Snowmelt Conditions/);
+  assert.doesNotMatch(html,/id="goodSnowForm"/);
+  assert.match(html,/data-michigan-good-snow-handoff="1"/);
+  assert.match(html,/href="\/michigan-snow-depth\//);
+});
+
+test("Michigan snow-depth page owns the Good Snow decision experience",()=>{
+  const html=fs.readFileSync(path.join(root,"public/michigan-snow-depth/index.html"),"utf8");
+  assert.match(html,/canonical" href="https:\/\/chrisizworski\.com\/michigan-snow-depth\//);
+  assert.match(html,/id="goodSnowForm"/);
+  assert.match(html,/Where Is the Good Snow\?/);
+  assert.match(html,new RegExp(owner.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"/assets/michigan-good-snow\\.js"));
+  assert.match(html,new RegExp(owner.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"/assets/michigan-good-snow\\.css"));
+  assert.match(html,/href="\/national-tools\/snow\//);
 });
 
 test("Good Snow client calls the owning deployment API",()=>{
