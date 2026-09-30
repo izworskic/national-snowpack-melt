@@ -1,5 +1,6 @@
 (function(){
 "use strict";
+const GOOD_SNOW_API="https://national-snowpack-melt.vercel.app/api/michigan-good-snow";
 function ready(fn){if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",fn);else fn();}
 function esc(v){return String(v==null?"":v).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function tripHours(value){
@@ -50,7 +51,7 @@ ready(function(){
     out.hidden=true;
     try{
       const p=new URLSearchParams({lat:loc.latitude,lon:loc.longitude,driveHours:drive,activity:activity,tripHours:String(tripHours(trip))});
-      const r=await fetch("/api/michigan-good-snow?"+p.toString());
+      const r=await fetch(GOOD_SNOW_API+"?"+p.toString());
       const d=await N.readJsonResponse(r,"Snow ranking unavailable");
       const rows=d.destinations||[];
       const diag=d.diagnostics||{};
