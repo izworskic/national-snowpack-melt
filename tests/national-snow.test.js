@@ -100,8 +100,9 @@ test("snow canonical exposes current metadata, source truth, safety boundaries a
   const html=fs.readFileSync(path.join(__dirname,"../public/national-tools/snow/index.html"),"utf8");
   assert.match(html,/<link rel="canonical" href="https:\/\/chrisizworski\.com\/national-tools\/snow\/">/);
   assert.match(html,/"dateModified":"2026-09-30"/);
-  assert.match(html,/id="goodSnowForm"/);
-  assert.match(html,/Where Is the Good Snow\?/);
+  assert.doesNotMatch(html,/id="goodSnowForm"/);
+  assert.match(html,/data-michigan-good-snow-handoff="1"/);
+  assert.match(html,/href="\/michigan-snow-depth\//);
   assert.match(html,/unofficial and provisional/i);
   assert.match(html,/not a NOAA\/NRCS snowmelt forecast/i);
   assert.match(html,/avalanche/i);
