@@ -13,6 +13,34 @@ test("pack consensus resists a single implausible nearby outlier",()=>{
   assert.equal(p.station_count,3);
 });
 
+test("SNODAS grid becomes the primary depth when model and stations agree",()=>{
+  const observed={depth:16,confidence:"high",station_count:3,distance_miles:8,spread:2,stations:[]};
+  const prior={depth:13,confidence:"high"};
+  const pack=snow.fusePack({depth_inches:15.2,swe_inches:2.7},observed,prior);
+  assert.equal(pack.depth,15.2);
+  assert.equal(pack.swe_inches,2.7);
+  assert.equal(pack.source,"nohrsc-snodas-1km");
+  assert.equal(pack.confidence,"high");
+  assert.equal(pack.change_24h,3);
+});
+
+test("large SNODAS versus station disagreement lowers confidence instead of averaging it away",()=>{
+  const observed={depth:2,confidence:"high",station_count:3,distance_miles:6,spread:1,stations:[]};
+  const pack=snow.fusePack({depth_inches:22,swe_inches:3.1},observed,{depth:2,confidence:"high"});
+  assert.equal(pack.depth,22);
+  assert.equal(pack.confidence,"low");
+  assert.equal(pack.validation,"model and stations disagree");
+  assert.equal(pack.validation_delta,20);
+});
+
+test("station consensus remains a graceful fallback when the raster is unavailable",()=>{
+  const observed={depth:9,confidence:"medium",station_count:2,distance_miles:12,spread:3,stations:[]};
+  const pack=snow.fusePack(null,observed,{depth:8,confidence:"medium"});
+  assert.equal(pack.depth,9);
+  assert.equal(pack.source,"station-fallback");
+  assert.equal(pack.confidence,"medium");
+});
+
 test("IEM snowfall parser accepts GeoJSON geometry coordinates when properties omit lat lon",()=>{
   const now=Date.parse("2026-01-15T12:00:00Z");
   const rows=snow.recentSnowRows({features:[{
