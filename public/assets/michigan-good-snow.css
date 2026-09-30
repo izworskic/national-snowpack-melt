@@ -1,0 +1,38 @@
+#best-snow{padding-top:16px!important}
+.gs-intro{margin:0 0 12px;color:#5f5b55}
+.gs-form{display:grid;grid-template-columns:minmax(190px,1.5fr) repeat(3,minmax(110px,.7fr)) auto;gap:8px;align-items:end;padding:14px;border:1px solid var(--editorial-line,#ddd7cb);background:#fff;border-radius:6px}
+.gs-field{display:flex;flex-direction:column;gap:5px}
+.gs-field label{font:700 11px/1.2 Arial,sans-serif;text-transform:uppercase;letter-spacing:.04em;color:#655f55}
+.gs-form input,.gs-form select{min-height:42px;border:1px solid #cfc8ba;border-radius:3px;background:#fdfcf9;padding:8px 10px;font:16px/1.2 Georgia,"Times New Roman",serif;color:#2b2b28}
+.gs-form .btn{min-width:138px}
+.gs-geo{grid-column:1/-1;display:flex;gap:10px;align-items:center}
+.gs-geo button{width:auto!important}
+.gs-results{margin-top:16px}
+.gs-verdict{padding:16px;border:1px solid var(--editorial-line,#ddd7cb);border-left:4px solid var(--editorial-green,#2c5f2d);background:#fff;border-radius:5px}
+.gs-verdict h2{margin:0 0 5px!important;font-size:25px}
+.gs-verdict p{margin:0}
+.gs-list{display:grid;gap:12px;margin-top:12px}
+.gs-card{padding:15px;border:1px solid var(--editorial-line,#ddd7cb);background:#fff;border-radius:6px}
+.gs-card.gs-top{border-top:4px solid var(--editorial-green,#2c5f2d)}
+.gs-rank{display:grid;grid-template-columns:34px 1fr auto;gap:9px;align-items:center}
+.gs-rank>span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#f1f6ef;font:700 14px Arial,sans-serif;color:#214a22}
+.gs-rank h3{margin:0!important;font-size:22px}
+.gs-rank p{margin:1px 0 0;color:#77736d;font:12px/1.4 Arial,sans-serif}
+.gs-score{display:flex;align-items:baseline;gap:2px}
+.gs-score strong{font:400 29px/1 Georgia,"Times New Roman",serif;color:#183f38}
+.gs-score span{font:11px Arial,sans-serif;color:#77736d}
+.gs-badges{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.gs-badges span{padding:4px 7px;border:1px solid #d7d1c5;border-radius:999px;background:#faf9f6;font:700 10px Arial,sans-serif;text-transform:uppercase;letter-spacing:.04em}
+.gs-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.gs-metric{padding:9px;border:1px solid #e4ded3;background:#fbfaf7;border-radius:4px}
+.gs-metric strong,.gs-metric span{display:block}
+.gs-metric strong{font:400 18px Georgia,"Times New Roman",serif}
+.gs-metric span{margin-top:2px;color:#77736d;font:10.5px Arial,sans-serif;text-transform:uppercase}
+.gs-why{margin:11px 0 4px}
+.gs-card details{margin-top:8px;color:#69655e;font-size:13px}
+.gs-card summary{cursor:pointer;font:700 12px Arial,sans-serif}
+.gs-actions{margin:10px 0 0}
+.gs-method{margin:14px 0 0;padding:12px 14px;background:#f8f6f1;border:1px solid #e4ded3;border-radius:4px;color:#625e57;font-size:13px}
+#goodSnowFreshness{margin-top:8px}
+@media(max-width:820px){.gs-form{grid-template-columns:1fr 1fr}.gs-field:first-child{grid-column:1/-1}.gs-form .btn{grid-column:1/-1;width:100%!important}.gs-geo{grid-column:1/-1}.gs-metrics{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.gs-form{grid-template-columns:1fr}.gs-field:first-child,.gs-form .btn,.gs-geo{grid-column:1}.gs-geo{display:block}.gs-geo button{width:100%!important;margin-bottom:5px}.gs-metrics{grid-template-columns:1fr 1fr}.gs-rank{grid-template-columns:30px 1fr}.gs-score{grid-column:2}.gs-verdict h2{font-size:22px}}
