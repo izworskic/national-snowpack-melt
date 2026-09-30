@@ -26,8 +26,16 @@ test("raster identify parser rejects NoData and absurd sentinel values",()=>{
   ]}),{depth_inches:null,swe_inches:null});
 });
 
-test("metadata parser reports the latest ArcGIS valid or ingest time",()=>{
+test("metadata parser separates analysis valid time from publication time",()=>{
   const t1=Date.parse("2026-01-15T06:00:00Z"), t2=Date.parse("2026-01-15T11:20:00Z");
   const meta=snodas.parseMetadata({features:[{attributes:{idp_validtime:t1,idp_ingestdate:t2}}]});
+  assert.equal(meta.valid_at,"2026-01-15T06:00:00.000Z");
   assert.equal(meta.updated_at,"2026-01-15T11:20:00.000Z");
+});
+
+test("freshness gate rejects an old or undated raster analysis",()=>{
+  const now=Date.parse("2026-01-16T12:00:00Z");
+  assert.equal(snodas.isStale({valid_at:"2026-01-15T06:00:00.000Z"},now),false);
+  assert.equal(snodas.isStale({valid_at:"2026-01-14T00:00:00.000Z"},now),true);
+  assert.equal(snodas.isStale({valid_at:null},now),true);
 });
