@@ -1,1 +1,57 @@
-TEMP
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Michigan Snow Depth: Where Is the Good Snow? | Chris Izworski</title>
+<meta name="description" content="Find the best natural snow within 1–5 hours in Michigan using NOAA/NOHRSC 1-km snow-depth discovery, nearby station checks, recent snowfall, forecast survival and drive time.">
+<link rel="canonical" href="https://chrisizworski.com/michigan-snow-depth/">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Michigan Snow Depth: Where Is the Good Snow?">
+<meta property="og:description" content="Search the reachable Michigan snow field and find the strongest natural-snow zones for your drive limit and winter activity.">
+<meta property="og:url" content="https://chrisizworski.com/michigan-snow-depth/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Michigan Snow Depth: Where Is the Good Snow?">
+<meta name="twitter:description" content="Search the reachable Michigan snow field, then compare station validation, forecast survival and drive time.">
+<link rel="stylesheet" href="/assets/national-tools.css?v=20260902-snow1">
+<link rel="stylesheet" href="https://national-snowpack-melt.vercel.app/assets/michigan-good-snow.css?v=20260930-4">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://chrisizworski.com/#person","name":"Chris Izworski","url":"https://chrisizworski.com/"},{"@type":"WebSite","@id":"https://chrisizworski.com/#website","url":"https://chrisizworski.com/","name":"Chris Izworski","author":{"@id":"https://chrisizworski.com/#person"}},{"@type":"SoftwareApplication","@id":"https://chrisizworski.com/michigan-snow-depth/#tool","url":"https://chrisizworski.com/michigan-snow-depth/","name":"Michigan Snow Depth: Where Is the Good Snow?","applicationCategory":"TravelApplication","operatingSystem":"Web","description":"A Michigan winter-trip decision tool that discovers reachable natural-snow zones with NOAA/NOHRSC snow analysis, validates them against observations, and ranks forecast survival and drive time.","dateModified":"2026-09-30","author":{"@id":"https://chrisizworski.com/#person"},"isPartOf":{"@id":"https://chrisizworski.com/#website"}}]}</script>
+<style>
+body{margin:0;background:#f8f6f1;color:#2b2b28;font-family:Georgia,"Times New Roman",serif;line-height:1.6}a{color:#2c5f2d}.site-head{border-bottom:1px solid #e8e4dc;background:#fbfaf7}.head-in,.wrap{max-width:920px;margin:0 auto;padding-left:20px;padding-right:20px}.head-in{display:flex;justify-content:space-between;align-items:center;padding-top:15px;padding-bottom:15px;gap:18px}.brand{color:#2b2b28;text-decoration:none;font-size:18px}.nav{display:flex;gap:14px;flex-wrap:wrap;font:12px Arial,sans-serif}.hero{padding:38px 0 8px}.breadcrumb{color:#8d887f;font-size:13px;margin-bottom:20px}.eyebrow,.tool-kicker{font:700 10.5px/1.2 Arial,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#7a684c}.hero h1{font-size:40px;font-weight:400;line-height:1.15;margin:7px 0 10px}.lede{font-size:17px;font-style:italic;color:#6d6a63;max-width:790px;border-bottom:1px solid #e8e4dc;padding-bottom:20px}.section{padding:18px 0}.section h2{font-weight:400;color:#2c5f2d}.handoff{margin-top:20px;padding:14px 16px;background:#fff;border:1px solid #ddd7cb;border-left:4px solid #2c5f2d;border-radius:5px}.small{font:12.5px/1.55 Arial,sans-serif;color:#77736d}.footer{margin-top:36px;border-top:1px solid #e8e4dc;background:#fbfaf7}.footer .wrap{padding-top:22px;padding-bottom:28px;color:#88837b;font-size:12.5px}@media(max-width:720px){.head-in{display:block}.nav{margin-top:8px}.hero h1{font-size:34px}}
+</style>
+</head>
+<body>
+<header class="site-head"><div class="head-in"><a class="brand" href="/">Chris Izworski</a><nav class="nav"><a href="/michigan-outdoors/">Michigan Outdoors</a><a href="/national-tools/">National Tools</a></nav></div></header>
+<main>
+<section class="hero"><div class="wrap">
+<div class="breadcrumb"><a href="/">Home</a> &rsaquo; Michigan Snow Depth</div>
+<div class="eyebrow">Michigan winter trip finder</div>
+<h1>Where Is the Good Snow?</h1>
+<p class="lede">Tell us where you are, how far you will drive and what kind of winter day you want. The tool searches the reachable Michigan snow field and returns the strongest real-world snow zones instead of making you interpret a statewide map.</p>
+</div></section>
+<section class="section" id="best-snow"><div class="wrap">
+<p class="gs-intro">Find the best natural snow within your drive limit. The engine first searches NOAA/NOHRSC snow depth across reachable Michigan, refines the strongest zones, checks them against nearby observations, then adds recent snowfall, forecast survival and routed drive time.</p>
+<form id="goodSnowForm" class="gs-form">
+  <div class="gs-field"><label for="goodSnowOrigin">Starting city or ZIP</label><input id="goodSnowOrigin" aria-label="Starting city or ZIP" placeholder="Bay City, MI" required></div>
+  <div class="gs-field"><label for="goodSnowDrive">Drive limit</label><select id="goodSnowDrive" name="driveHours"><option value="2">2 hours</option><option value="3" selected>3 hours</option><option value="4">4 hours</option><option value="5">5 hours</option></select></div>
+  <div class="gs-field"><label for="goodSnowTrip">When</label><select id="goodSnowTrip" name="trip"><option value="today">Today</option><option value="saturday" selected>Saturday</option><option value="sunday">Sunday</option></select></div>
+  <div class="gs-field"><label for="goodSnowActivity">Activity</label><select id="goodSnowActivity" name="activity"><option value="any">Any winter day</option><option value="snowshoe">Snowshoe</option><option value="xc">XC ski</option><option value="kids">Kids / sledding</option><option value="photo">Winter photos</option></select></div>
+  <button class="btn" type="submit">Find good snow</button>
+  <div class="gs-geo"><button type="button" class="secondary-btn geo-btn" data-use-location>Use my location</button><span class="location-privacy">Device location is optional and is not included in analytics.</span></div>
+</form>
+<div id="goodSnowStatus" class="status" aria-live="polite"></div>
+<div id="goodSnowResults" class="gs-results" hidden>
+  <div class="gs-verdict"><span class="tool-kicker">Drive decision</span><h2 id="goodSnowHeadline"></h2><p id="goodSnowNote"></p></div>
+  <div id="goodSnowList" class="gs-list"></div><p id="goodSnowFreshness" class="small"></p>
+</div>
+<div class="gs-method"><strong>What the score means:</strong> current ground snow carries the most weight because fresh flakes cannot rescue a bare base. NOAA/NOHRSC snow analysis discovers strong snow zones instead of checking only preset towns; nearby observations validate the modeled depth. Disagreement lowers confidence. Recent snowfall can improve a zone; forecast warm rain can sharply reduce it. Drive time filters the candidate set instead of making farther snow look artificially better.</div>
+<div class="handoff"><strong>Need a different winter answer?</strong> <a href="/michigan-snow-totals/">Michigan Snow Totals</a> answers what just fell. <a href="/snowmobile/">Michigan Snowmobile</a> owns trail-status decisions. <a href="/michigan-cross-country-skiing/">Michigan Cross-Country Skiing</a> covers groomed XC conditions. For a location anywhere in the U.S., use the <a href="/national-tools/snow/">National Snowpack &amp; Snowmelt tool</a>.</div>
+<p class="small">Natural-snow opportunity only. This does not establish road safety, land access, groomed-trail quality, avalanche safety or ice safety.</p>
+</div></section>
+</main>
+<footer class="footer"><div class="wrap">© 2026 Chris Izworski · NOAA/NOHRSC, NWS and routing sources remain separately labeled in results.</div></footer>
+<script src="/assets/national-tools.js?v=20260902-placebar1"></script>
+<script src="https://national-snowpack-melt.vercel.app/assets/michigan-good-snow.js?v=20260930-4"></script>
+</body>
+</html>
