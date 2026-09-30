@@ -134,8 +134,11 @@ function packConsensus(rows, lat, lon) {
   };
 }
 function recentSnowRows(geojson, nowMs=Date.now()) {
-  return (geojson && geojson.features || []).map(f=>f.properties||{}).map(p=>{
-    const amount=finite(p.magnitude,0,80), valid=Date.parse(p.valid), lat=finite(p.lat,-90,90), lon=finite(p.lon,-180,180);
+  return (geojson && geojson.features || []).map(f=>{
+    const p=f&&f.properties||{};
+    const coords=Array.isArray(f&&f.geometry&&f.geometry.coordinates)?f.geometry.coordinates:[];
+    const amount=finite(p.magnitude,0,80), valid=Date.parse(p.valid);
+    const lat=finite(p.lat ?? coords[1],-90,90), lon=finite(p.lon ?? coords[0],-180,180);
     if (String(p.typetext||"").toUpperCase()!=="SNOW" || amount==null || !Number.isFinite(valid) || lat==null || lon==null) return null;
     return {amount,reported_at:new Date(valid).toISOString(),lat,lon,place:String(p.city||"").trim(),remark:String(p.remark||"").replace(/\s+/g," ").trim().slice(0,160)};
   }).filter(Boolean).filter(r=>nowMs-Date.parse(r.reported_at)<=72*HOUR);
@@ -226,7 +229,7 @@ function scoreDestination(d, activity="any", forecast=null) {
   const survive=p.survivalWeight*s.factor;
   let confidence=d.pack.confidence;
   if (!forecast || !forecast.hours) confidence=lowerConfidence(confidence);
-  let raw=base+fresh+survive;
+  const raw=base+fresh+survive;
   const cap=confidence==="high"?100:confidence==="medium"?90:75;
   const score=Math.max(0,Math.min(cap,Math.round(raw/5)*5));
   const quality=score>=85?"excellent":score>=70?"good":score>=50?"fair":score>=30?"marginal":"poor";
