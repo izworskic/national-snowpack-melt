@@ -13,6 +13,19 @@ test("pack consensus resists a single implausible nearby outlier",()=>{
   assert.equal(p.station_count,3);
 });
 
+test("IEM snowfall parser accepts GeoJSON geometry coordinates when properties omit lat lon",()=>{
+  const now=Date.parse("2026-01-15T12:00:00Z");
+  const rows=snow.recentSnowRows({features:[{
+    type:"Feature",
+    geometry:{type:"Point",coordinates:[-84.6748,45.0275]},
+    properties:{typetext:"SNOW",magnitude:5.5,valid:"2026-01-15T06:00:00Z",city:"Gaylord",remark:"Measured snowfall"}
+  }]},now);
+  assert.equal(rows.length,1);
+  assert.equal(rows[0].lat,45.0275);
+  assert.equal(rows[0].lon,-84.6748);
+  assert.equal(rows[0].amount,5.5);
+});
+
 test("low confidence caps a large raw snow signal",()=>{
   const d={pack:{depth:20,confidence:"low"},recent_snow:{inches:8}};
   const s=snow.scoreDestination(d,"any",{hours:72,max_temperature_f:25,above_freezing_hours:0,warm_40f_hours:0,rain_signal_hours:0,snow_signal_hours:5});
