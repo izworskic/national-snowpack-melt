@@ -55,3 +55,36 @@ test("anchor merge preserves spatial winners and adds fallback towns without dup
   assert.ok(!merged.some(x=>x.id==="gaylord"));
   assert.ok(merged.some(x=>x.id==="grayling"));
 });
+
+test("full discovery promotes a raster-found snow zone ahead of preset anchors",async()=>{
+  const origin={lat:43.5945,lon:-83.8889};
+  let call=0;
+  const fetchGrid=async points=>{
+    call++;
+    const byId=new Map(points.map((p,i)=>[p.id,{id:p.id,depth_inches:call===1?(i===Math.floor(points.length/2)?14:0):(i===points.length-1?19:12),swe_inches:2.5}]));
+    return {byId,failures:0,sampled:points.length};
+  };
+  const result=await S.discover({origin,maxMinutes:180,anchors,fetchGrid});
+  assert.equal(result.mode,"spatial");
+  assert.ok(result.diagnostics.coarse_points>0);
+  assert.ok(result.diagnostics.refined_points>0);
+  assert.ok(result.diagnostics.zones_found>=1);
+  assert.equal(result.candidates[0].discovery_source,"snodas-spatial");
+  assert.ok(result.candidates[0].discovery_depth_hint>=14);
+  assert.equal(call,2);
+});
+
+test("full discovery falls back cleanly when the reachable raster has no snow",async()=>{
+  const origin={lat:43.5945,lon:-83.8889};
+  let call=0;
+  const fetchGrid=async points=>{
+    call++;
+    return {byId:new Map(points.map(p=>[p.id,{id:p.id,depth_inches:0,swe_inches:0}])),failures:0,sampled:points.length};
+  };
+  const result=await S.discover({origin,maxMinutes:180,anchors,fetchGrid});
+  assert.equal(result.mode,"anchor-fallback");
+  assert.equal(result.diagnostics.zones_found,0);
+  assert.ok(result.candidates.length>0);
+  assert.ok(result.candidates.every(x=>x.discovery_source==="anchor"));
+  assert.equal(call,1);
+});
