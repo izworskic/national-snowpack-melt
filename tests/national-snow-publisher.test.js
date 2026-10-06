@@ -18,7 +18,7 @@ const pages = [
 test("affected national snow root pages publish through the canonical Chris Person", () => {
   for (const page of pages) {
     const html = fs.readFileSync(path.join(__dirname, "..", page.file), "utf8");
-    const blocks = [...html.matchAll(/<script type="application\\/ld\\+json">(.*?)<\\/script>/gs)];
+    const blocks = [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)];
     assert.equal(blocks.length, 1, page.file + ": expected one JSON-LD graph");
     const graph = JSON.parse(blocks[0][1])["@graph"];
     const personNode = graph.find((node) => node["@type"] === "Person" && node["@id"] === personId);
