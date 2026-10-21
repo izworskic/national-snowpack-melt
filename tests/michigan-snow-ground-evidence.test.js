@@ -17,10 +17,30 @@ test('IMS maps each distinct cover class, never depth',()=>{
   assert.equal(E.parseIms({value:'NoData'}).status,'unavailable');
   assert.equal(E.parseIms({}).status,'unavailable');
 });
-test('IMS request uses explicit WGS84 geometry',()=>{
-  const u=new URL(E.imsIdentifyUrl(45.0,-84.7));
-  assert.ok(u.pathname.endsWith('/ImageServer/identify'));
-  assert.deepEqual(JSON.parse(u.searchParams.get('geometry')),{x:-84.7,y:45,spatialReference:{wkid:4326}});
+test('IMS native-projection meter point agrees with independent PROJ for Gaylord',()=>{
+  const u=new URL(E.imsIdentifyUrl(45.0275,-84.6748));
+  const [x,y]=u.searchParams.get('geometry').split(',').map(Number);
+  assert.ok(Math.abs(x+402109.1083)<0.02);
+  assert.ok(Math.abs(y+4917431.3245)<0.02);
+  assert.equal(u.searchParams.has('sr'),false);
+});
+test('IMS projected checks for Michigan interior, lake and Florida are distinct',()=>{
+  for(const [lat,lon,x,y] of [
+    [43.5945,-83.8889,-346484.2679,-5096966.0723],
+    [44.1,-86.5,-571317.6724,-5014390.8554],
+    [46.54,-87.39,-611105.5047,-4711690.1141],
+    [27.96,-82.46,-307143.0558,-7149262.5829]
+  ]){
+    const p=E.polarStereographic(lat,lon);
+    assert.ok(Math.abs(p.x-x)<0.2);
+    assert.ok(Math.abs(p.y-y)<0.2);
+  }
+  assert.throws(()=>E.polarStereographic(91,0));
+});
+test('recorded NOAA projected point responses are land, water, not all ice',()=>{
+  assert.equal(E.parseIms({value:'2'}).classification,'snow-free-land');
+  assert.equal(E.parseIms({value:'1'}).classification,'open-water');
+  assert.equal(E.parseIms({value:'3'}).classification,'lake-or-sea-ice');
 });
 test('ACIS requests snwd distinct from snowfall with a bounded date range',()=>{
   const u=new URL(E.acisUrl(45.0,-84.7,NOW));

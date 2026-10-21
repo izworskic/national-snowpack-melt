@@ -49,8 +49,8 @@ module.exports=async function handler(req,res) {
   return res.status(200).json({
     researchOnly:true,retrievedAt:new Date(now).toISOString(),
     referenceCell:{lat:y,lon:x,approximate:true},
-    overallStatus:settled.every(s=>s.status==='rejected')?'unavailable':
-      settled.some(s=>s.status==='rejected')?'partial':'sources-responded',
+    overallStatus:ims.status==='unavailable'&&observations.status==='unavailable'?'unavailable':
+      ims.status==='unavailable'||observations.status==='unavailable'?'partial':'sources-responded',
     ims,observations,validation:E.compareEvidence(ims,observations),sources,
     warnings:['Do not use this endpoint to score or guarantee a winter outing.',
       'Cover class, modeled snow depth and measured snow depth are different products.',

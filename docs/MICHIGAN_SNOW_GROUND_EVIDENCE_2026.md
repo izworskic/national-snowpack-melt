@@ -65,3 +65,11 @@ Queried the live NOAA NOHRSC REST MapServer identify service and NOAA metadata q
 - The parser changes in this branch normalize raw NOAA values into inches and decode actual ACIS range-format rows. No production merge was performed.
 
 Remaining release blocker: substantial **snow-covered Michigan** station-date comparisons (10+), simultaneous with dated live NOAA raster samples, and IMS georeferencing/classification reconciliation; unit/source-field confidence is stronger, but activity recommendation reliability is not yet demonstrated.
+
+
+## October 21 follow-up: IMS geolocation defect resolved
+The NOAA USNIC IMS ImageServer uses native **Polar Stereographic meters** (central meridian -80, latitude of true scale 60, a=6378137, inverse flattening 291.5053473491773). ArcGIS ImageServer/identify defaults to the image service's spatial reference. Prior code sent WGS84 degrees and sampled near the pole, returning ice everywhere. The new \`polarStereographic\` adapter transforms WGS84 locations to native meters, independently verified against PROJ. On October 21, live NOAA point responses at projected locations gave Gaylord=2 (snow-free land), Bay City=2, Lake Michigan=1 (water), Tampa Florida=2, and Marquette coast=1 (near-shore water pixel). The old raw-degree requests all incorrectly returned 3 (ice).
+
+Sources: NOAA service WKT https://mapservices.weather.noaa.gov/raster/rest/services/obs/usnic_ims_snow_ice_1km/ImageServer and Esri identify docs https://developers.arcgis.com/rest/services-reference/enterprise/identify-image-service/ .
+
+IMS remains *research-only* in trip scoring because an independently verified current **analysis valid timestamp** is still absent from its point response. Its class means coverage, never depth.
