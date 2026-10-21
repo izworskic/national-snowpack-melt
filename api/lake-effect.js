@@ -9,9 +9,9 @@ async function getJson(url,ms=6000){
  return u.pathname.endsWith(".csv")?r.text():r.json();
 }
 function lakeUrl(now){
- const d=new Date(now-10*86400000).toISOString().slice(0,10);
- const q="time,Sup,Mich,Huron,Erie,Ont&time>="+d+"T00:00:00Z";
- return "https://apps.glerl.noaa.gov/erddap/tabledap/glsea_avgtemps_3.csv?"+encodeURI(q);
+ const year=new Date(now).getUTCFullYear();
+ const startYear=new Date(now).getUTCMonth()===0?year-1:year;
+ return "https://apps.glerl.noaa.gov/erddap/tabledap/glsea_avgtemps_3.csv?Year%2CDay%2CSup%2CMich%2CHuron%2CErie%2COnt&Year%3E%3D"+startYear;
 }
 function responseHeaders(req,res){
  res.setHeader("Content-Type","application/json; charset=utf-8");
