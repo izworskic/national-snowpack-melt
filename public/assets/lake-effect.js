@@ -37,7 +37,7 @@ function hours(hs){
 }
 function render(d){
  const v=d.verdict||{},region=d.region||{};
- text("headline",label(v.headline));text("impact",label(v.impact));
+ text("headline",label(v.headline));text("impact",label(v.impact));text("timing-window",label(v.timing_window));
  text("confidence",label(v.confidence).toUpperCase());
  text("matched",label(v.first_12h?.overlap_hours,"0")+" / "+label(v.first_12h?.valid_hours,"0"));
  text("alert-count",d.alerts_status==="available"?String(d.alerts?.length||0):"Unknown");
