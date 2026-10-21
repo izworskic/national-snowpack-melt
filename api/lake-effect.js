@@ -1,17 +1,15 @@
 "use strict";
 const M=require("../lib/lake-effect");
-const UA="ChrisIzworskiLakeEffect/1.0 (+https://chrisizworski.com/lake-effect-snow/)";
+const UA="ChrisIzworskiLakeEffect/1.1 (+https://chrisizworski.com/lake-effect-snow/)";
 async function getJson(url,ms=6000){
  const u=new URL(url);
  if(u.protocol!=="https:"||!["api.weather.gov","apps.glerl.noaa.gov"].includes(u.hostname))throw Error("Upstream not allowlisted");
- const r=await fetch(u,{headers:{accept:"application/geo+json,application/json,text/csv;q=0.8","user-agent":UA},signal:AbortSignal.timeout(ms)});
+ const r=await fetch(u,{headers:{accept:"application/geo+json,application/json,text/plain;q=0.8","user-agent":UA},signal:AbortSignal.timeout(ms)});
  if(!r.ok)throw Error("Upstream "+u.hostname+" returned "+r.status);
- return u.pathname.endsWith(".csv")?r.text():r.json();
+ return /.(csv|dat)$/i.test(u.pathname)?r.text():r.json();
 }
-function lakeUrl(now){
- const year=new Date(now).getUTCFullYear();
- const startYear=new Date(now).getUTCMonth()===0?year-1:year;
- return "https://apps.glerl.noaa.gov/erddap/tabledap/glsea_avgtemps_3.csv?Year%2CDay%2CSup%2CMich%2CHuron%2CErie%2COnt&Year%3E%3D"+startYear;
+function lakeUrl(){
+ return "https://apps.glerl.noaa.gov/coastwatch/ftp/glsea/avgtemps/glsea-temps_1024_3.dat";
 }
 function responseHeaders(req,res){
  res.setHeader("Content-Type","application/json; charset=utf-8");
@@ -48,7 +46,7 @@ async function report(region,now=Date.now()){
   region,verdict,alerts,alerts_status:alertsStatus,lake_temperature:lakeTemp,
   hours,forecast_updated:forecastUpdated,
   sources:{nws_point:pointUrl,nws_hourly:hourlyUrl,nws_alerts:"https://api.weather.gov/alerts/active?point="+region.lat+","+region.lon,
-   lake_temperatures:"https://apps.glerl.noaa.gov/erddap/tabledap/glsea_avgtemps_3.html",
+   lake_temperatures:"https://apps.glerl.noaa.gov/coastwatch/ftp/glsea/avgtemps/glsea-temps_1024_3.dat",
    forecast_basis:"NWS local hourly point forecast (not an upstream band simulation)",
    lake_basis:"NOAA GLSEA daily lakewide surface average; not local fetch or 850-mb air temperature"},
   limitations:["Lake-effect snowbands can move sharply after small wind shifts; region summaries are not band forecasts.",

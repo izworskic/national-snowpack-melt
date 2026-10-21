@@ -8,7 +8,7 @@ The first release includes 15 representative snowbelt checkpoints in Michigan, W
 ## Inputs and interpretation
 - NWS API /points -> hourly forecast (time, temperature, surface wind, forecast text, precipitation chance). The point is on land; observed or forecast surface wind there is not upstream 850-mb wind over open lake.
 - NWS active point alerts, with explicit lake-effect classification ONLY if the official alert says lake effect. Generic winter warnings are still important hazards, without claiming their origin.
-- NOAA GLERL GLSEA daily lakewide surface temperature through ERDDAP glsea_avgtemps_3, dated and labeled satellite-derived, not a nearshore thermometer or upper-air instability.
+- NOAA GLERL GLSEA daily lakewide surface temperatures from its official rolling 365-day text feed `glsea-temps_1024_3.dat` (year, day-of-year, five lakewide °C values). The ERDDAP `glsea_avgtemps_3` dataset was found to expose `Year` and `Day`, not a `time` column. The simpler official rolling text feed replaces an unverified ERDDAP request. All readings remain date-validated, lakewide, and satellite-derived—not shoreline temperatures or upper-air instability.
 - Broad regional exposure sectors are heuristics, not polygons or forecast band positions. The chosen town does not describe conditions across the full snowbelt.
 - No assumed radar track, snowfall totals, road safety claims or calibrated percent chance of an impact.
 
@@ -38,3 +38,6 @@ The current feature branch is implementation work, not verified operational serv
 
 ## Next data improvements
 NWS office-by-office exposure sector validation, historical-event hindcasts, credible ice/open-water mapping, WSSI-P severity interpretation, and regional travel alerts. Do not add unsupported local-town sprawl or high-resolution invented band geometry.
+
+### October 21 source-format correction
+Official NOAA GLSEA direct raw feed: https://apps.glerl.noaa.gov/coastwatch/ftp/glsea/avgtemps/glsea-temps_1024_3.dat . A browser/web fetch returned dated whitespace-delimited rows with day-of-year and °C fields. The live Vercel preview remains protected; deployed API egress and date freshness are not yet confirmed. Code fails open *for page readability*, but fails closed for any asserted temperature when NOAA retrieval is blocked.

@@ -18,9 +18,16 @@ test("compass sectors wrap safely; unknown wind does not become alignment",()=>{
 test("lake temperatures remain lakewide, dated and fail closed when stale",()=>{
  const csv="Year,Day,Sup,Mich,Huron,Erie,Ont\n, ,degree_C,degree_C,degree_C,degree_C,degree_C\n2026,346,5.3,7.2,4.1,3.5,6.2\n";
  const v=M.parseLakeCsv(csv,"Michigan",NOW);
- assert.equal(v.status,"available");assert.equal(v.celsius,7.2);assert.equal(v.scope,"lakewide surface average");assert.match(API._test.lakeUrl(NOW),/Year%2CDay/);
+ assert.equal(v.status,"available");assert.equal(v.celsius,7.2);assert.equal(v.scope,"lakewide surface average");assert.match(API._test.lakeUrl(NOW),/glsea-temps_1024_3\.dat$/);
  assert.equal(M.parseLakeCsv(csv,"Michigan",NOW+7*86400000).status,"stale");
  assert.equal(M.parseLakeCsv("garbage","Michigan",NOW).status,"unavailable");
+});
+test("official GLSEA rolling whitespace text feed parses dated temperatures without inventing daily updates",()=>{
+ const text="Daily Lake Average Surface Water Temperature\nFrom Great Lakes Surface Environmental Analysis maps\nSurf. Water Temp. (degrees C)\nYear Day Sup. Mich. Huron Erie Ont. St.Clr\n2026 346 4.18 5.21 4.71 4.43 5.14 1.74\n2026 347 4.16 5.02 4.70 4.20 5.06 1.61\n2026 348 4.09 4.92 4.42 3.79 4.94 0.20\n";
+ const r=M.parseLakeCsv(text,"Superior",NOW);
+ assert.equal(r.status,"available");assert.equal(r.celsius,4.1);assert.equal(r.date,"2026-12-14T00:00:00.000Z");
+ assert.equal(M.parseLakeCsv(text,"Ontario",NOW).celsius,4.9);
+ assert.equal(M.parseLakeCsv(text,"Superior",NOW+7*86400000).status,"stale");
 });
 test("no false confident snow from surface wind alone",()=>{
  const region=M.allowed["mi-marquette"],hours=M.hourRows(Array.from({length:12},(_,i)=>mkHour(i,"NW","Mostly Clear")),region.windSector,NOW);
