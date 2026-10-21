@@ -74,6 +74,10 @@ ready(function(){
         headline.textContent="No strong natural-snow destination stands out inside "+drive+" hours.";
         note.textContent="These are the best available comparisons, but the current evidence does not clear the minimum snow threshold for a confident winter-day recommendation.";
         list.innerHTML=rows.map(resultCard).join("");
+      }else if(d.verdict==="route-unverified"){
+        headline.textContent="Possible snow destination: "+rows[0].name;
+        note.textContent="Snow evidence is promising, but road routing or access to the sampled snow zone was not verified. Drive times are estimates; check the actual route and public access before going.";
+        list.innerHTML=rows.map(resultCard).join("");
       }else{
         headline.textContent="Best snow within "+drive+" hours: "+rows[0].name;
         note.textContent=diag.discovery_mode==="spatial"?"The engine searched the reachable NOAA/NOHRSC snow field first, refined the strongest zones, then applied station checks, forecast survival and routed drive time.":"No stronger spatial snow zone cleared the discovery gates, so the engine ranked the established destination set with the same snow and forecast checks.";

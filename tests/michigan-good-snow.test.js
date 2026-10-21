@@ -89,3 +89,18 @@ test("Michigan candidate set covers the major lake-effect trip regions",()=>{
   const ids=new Set(snow.DESTINATIONS.map(x=>x.id));
   for(const id of ["gaylord","grayling","munising","negaunee","houghton","calumet","ironwood"]) assert.ok(ids.has(id));
 });
+
+test("active thaw lowers model-only confidence when nearby station depth is unavailable",()=>{
+ const d={pack:{depth:15,confidence:"high",source:"nohrsc-snodas-1km",validation:"model only"},recent_snow:{inches:3}};
+ const dry={hours:48,max_temperature_f:28,above_freezing_hours:0,warm_40f_hours:0,rain_signal_hours:0,snow_signal_hours:3};
+ const wet={...dry,max_temperature_f:42,above_freezing_hours:15,warm_40f_hours:10,rain_signal_hours:7};
+ const cold=snow.scoreDestination(d,"any",dry),warm=snow.scoreDestination(d,"any",wet);
+ assert.equal(cold.confidence,"high");
+ assert.equal(warm.confidence,"medium");
+ assert.ok(warm.score<cold.score);
+});
+test("station corroboration prevents automatic thaw uncertainty penalty",()=>{
+ const d={pack:{depth:15,confidence:"high",source:"nohrsc-snodas-1km",validation:"model and stations closely agree"},recent_snow:{inches:2}};
+ const wet={hours:48,max_temperature_f:42,above_freezing_hours:15,warm_40f_hours:10,rain_signal_hours:7,snow_signal_hours:0};
+ assert.equal(snow.scoreDestination(d,"any",wet).confidence,"high");
+});

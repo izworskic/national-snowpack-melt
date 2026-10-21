@@ -18,12 +18,3 @@ jobs:
           node-version: 22
       - run: npm install --ignore-scripts --no-audit --no-fund
       - run: npm test
-      # One-off historical research on PR #10 only. Never part of production builds.
-      - name: Compare archived 2026 SNODAS snow depth against dated Michigan stations
-        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 10 }}
-        timeout-minutes: 4
-        run: |
-          python3 scripts/validate-snow-history.py --date 2026-01-15 --min-pairs 10
-          python3 scripts/validate-snow-history.py --date 2026-02-15 --min-pairs 10
-          python3 scripts/validate-snow-history.py --date 2026-03-15 --min-pairs 10
-          python3 scripts/validate-snow-history.py --date 2026-04-01 --min-pairs 5

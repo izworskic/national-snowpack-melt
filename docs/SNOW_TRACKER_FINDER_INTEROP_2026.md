@@ -29,3 +29,22 @@ Date: October 21, 2026. Status: **draft PR**; source-unit and independent Michig
 - Station requests are lazy and source failures are fail-soft.
 - Data access is local to source repo and read-only; no duplicated score engine.
 - CI and preview must pass before any merge.
+
+
+## Release readiness / dated winter backtest (2026-10-21)
+A one-off PR-only GitHub Action successfully downloaded the official NSIDC G02158 masked NOAA SNODAS daily depth archive and compared the 1km pixel at Michigan station coordinates with same-date ACIS SNWD observations. The script remains at \`scripts/validate-snow-history.py\`, but its action was deliberately **removed from routine CI** after the successful one-time run to avoid repeated 80 MB downloads.
+
+| Model date | Michigan nonzero station pairs | Mean absolute difference | Median absolute difference | P90 absolute difference | Zero-snow station cases / model >=3in |
+| Jan 15, 2026 | 202 | 2.01in | 1.44in | 4.50in | 16 / 1 |
+| Feb 15, 2026 | 195 | 2.01in | 1.04in | 4.77in | 11 / 2 |
+| Mar 15, 2026 | 124 | 5.03in | 3.38in | 12.28in | 66 / 0 |
+| Apr 01, 2026 | 66 | 4.42in | 2.63in | 14.00in | 148 / 2 |
+| **Total** | **587** | — | — | — | **241 / 5** |
+
+GitHub Actions source logs: https://github.com/izworskic/national-snowpack-melt/actions/runs/39596189268
+
+Interpretation: Date-aligned checks include some stations assimilated into the NOAA analysis, and station timestamps do not perfectly match the ~06UTC grid. These comparisons **do not demonstrate independent predictive skill**. They do support a conservative rule: a model-only 1km depth receives lower confidence when thaw or rain is forecast. The existing forecast-survival penalty remains separate.
+
+New routing gate: If the top-rated Michigan candidate has only approximate road time, or its spatial road-snap failed, the backend labels the verdict \`route-unverified\` and the UI does not assert a verified drive-time window. These unverified points cannot be presented as a confident "best snow within X hours" verdict.
+
+The main website references a versioned externally hosted Michigan JS asset. Before release, review cache invalidation/version update with the site-shell repo. Protected preview browser navigation has not been independently tested.

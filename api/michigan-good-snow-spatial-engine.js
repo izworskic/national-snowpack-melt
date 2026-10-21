@@ -167,7 +167,10 @@ async function buildDiscovery({lat,lon,driveHours=3,activity="any",tripHours=72,
   const sourceNames=["nohrsc-current","nohrsc-prior","nws-lsr","spatial-discovery"];
   return {
     retrieved_at:new Date().toISOString(),origin:{latitude:lat,longitude:lon},drive_limit_minutes:maxMinutes,activity,activity_label:p.label,trip_hours:tripHours,
-    verdict:noStrong?"no-strong-snow":"ranked",destinations:candidates.slice(0,5),
+    verdict:noStrong?"no-strong-snow":
+      (best.travel_source!=="routed" ||
+        (best.discovery_source==="snodas-spatial" && best.road_snap_degraded))?
+      "route-unverified":"ranked",destinations:candidates.slice(0,5),
     diagnostics:{
       discovery_mode:discovery.mode,
       spatial_degraded:settled[3].status!=="fulfilled",

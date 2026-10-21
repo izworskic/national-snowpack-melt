@@ -263,6 +263,16 @@ function scoreDestination(d, activity="any", forecast=null) {
   const survive=p.survivalWeight*s.factor;
   let confidence=d.pack.confidence;
   if (!forecast || !forecast.hours) confidence=lowerConfidence(confidence);
+  // Archived Michigan SNODAS/ACIS checks showed markedly larger disagreement
+  // during spring snow retreat than during midwinter. When active thaw is in
+  // the forecast and 1-km model depth has NO station corroboration, reduce
+  // confidence instead of treating that isolated pixel as verified ground.
+  const thawHours=forecast&&Number(forecast.above_freezing_hours)||0;
+  const rainHours=forecast&&Number(forecast.rain_signal_hours)||0;
+  const modelAlone=d.pack.source==="nohrsc-snodas-1km" &&
+    d.pack.validation==="model only";
+  if(modelAlone && (thawHours>=8 || rainHours>=3))
+    confidence=lowerConfidence(confidence);
   const raw=base+fresh+survive;
   const cap=confidence==="high"?100:confidence==="medium"?90:75;
   const score=Math.max(0,Math.min(cap,Math.round(raw/5)*5));
