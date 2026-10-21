@@ -41,3 +41,20 @@ test('candidates use an estimated geometric bound, with no route or winter-parki
  assert.ok(c.length);
  assert.ok(c.every(x=>x.travel_source==='estimated'&&x.access_status.includes('unverified')));
 });
+
+test('visitor drive limit is a strict estimated upper bound (not a 155% discovery radius)',()=>{
+ const origin={lat:43.5945,lon:-83.8889};
+ const maxMinutes=180;
+ const rows=A.candidates(origin,maxMinutes,'snowshoe');
+ assert.ok(rows.length>0);
+ assert.ok(rows.every(p=>p.estimated<=maxMinutes),
+   'Do not display places beyond the selected number of hours');
+ const distant=A.PLACES.find(p=>p.id==='hoffmaster');
+ assert.ok(A.estimatedMinutes(origin,distant)>maxMinutes);
+ assert.ok(!rows.some(p=>p.id==='hoffmaster'));
+});
+test('ranking engine does not widen candidate drive filter downstream',()=>{
+ const js=read('api/michigan-good-snow-spatial-engine.js');
+ assert.match(js,/routed\.filter\(d=>d\.estimated<=maxMinutes\)/);
+ assert.doesNotMatch(js,/estimated<=maxMinutes\*1\.55/);
+});

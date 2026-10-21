@@ -152,7 +152,7 @@ async function buildDiscovery({lat,lon,driveHours=3,activity="any",tripHours=72,
     SNODAS.fetchGrid(pool,fetchJson,6,nowMs)
   ])];
   const grid=post[1].status==="fulfilled"?post[1].value:null;
-  let candidates=routed.filter(d=>d.estimated<=maxMinutes*1.55).map(d=>{
+  let candidates=routed.filter(d=>d.estimated<=maxMinutes).map(d=>{
     const observed=B.packConsensus(depthNow&&depthNow.rows,d.lat,d.lon);
     const priorObserved=B.packConsensus(depthPrior&&depthPrior.rows,d.lat,d.lon);
     const pack=B.fusePack(grid&&grid.byId&&grid.byId.get(d.id),observed,priorObserved);
