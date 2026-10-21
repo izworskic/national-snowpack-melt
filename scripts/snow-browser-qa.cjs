@@ -49,6 +49,7 @@ const server=http.createServer((req,res)=>{
    await ctx.route('**/basemaps.cartocdn.com/**',r=>{assert.equal(new URL(r.request().url()).searchParams.get('key'),'public-qa-key');carto++;return r.fulfill({status:200,contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+wP+zP9JxQAAAABJRU5ErkJggg==','base64')});});
    const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));
    await page.goto(base+'/michigan-snow-depth/',{waitUntil:'domcontentloaded'});
+   await page.locator('#goodSnowOrigin').fill('Bay City, MI');
    await page.locator('#goodSnowForm button[type=submit]').click();
    await page.locator('#goodSnowList .gs-card').first().waitFor();
    assert.match(await page.locator('#goodSnowHeadline').innerText(),/Promising public snow destination/);
