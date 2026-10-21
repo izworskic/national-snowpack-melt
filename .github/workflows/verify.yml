@@ -18,3 +18,10 @@ jobs:
           node-version: 22
       - run: npm install --ignore-scripts --no-audit --no-fund
       - run: npm test
+      - name: One-off Chromium snow planner QA
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 10 }}
+        timeout-minutes: 6
+        run: |
+          npm install --no-save playwright@1.55.1 leaflet@1.9.4 --ignore-scripts --no-audit --no-fund
+          npx playwright install chromium --with-deps
+          node scripts/snow-browser-qa.cjs
