@@ -51,3 +51,17 @@ Existing lib/nohrsc-snodas.js interprets a field named Pixel Value as inches; ot
 
 ## Cost and rollout
 One feature-branch commit; no merge or production release in this phase. Audit is manual and does not run on each GitHub merge or Vercel build. Hosted Open-Meteo free-tier conditions do not permit advertising sites, so this phase adds no dependency on that hosted API. In future, consider archived NOAA snow-depth snapshots via low-frequency batch processing, an appropriate routing provider, and a single shared snow data service for other winter tools.
+
+
+## October 21 live-source validation findings (follow-up)
+Queried the live NOAA NOHRSC REST MapServer identify service and NOAA metadata query directly, plus ACIS MultiStnData and the USNIC IMS ImageServer.
+
+- NOAA identify layer 3 (snow depth) returns \`attributes["Service Pixel Value"]\` in **meters** (GRIB2 SNOD). Layer 7 (SWE) returns native **kg/m²** (GRIB2 WEASD). An example sample at Mt Elbert, CO returned depth 0.05 m (1.97 in), SWE 9 kg/m² (0.354 in). Vail Pass returned depth 0.02 m and SWE 4 kg/m². Source: NOAA GRIB2 moisture parameter table https://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_doc/grib2_table4-2-0-1.shtml
+- NOAA map service also emits \`Classify.Pixel Value\` and \`Classify.Class value\` used by rendering. Neither is a trusted inch value. Previously lib/nohrsc-snodas.js looked only for \`Pixel Value\` and would therefore silently return null for both raster values in observed responses.
+- Live depth and SWE at sampled Marquette, Keweenaw and Gaylord points were 0. Gaylord ACIS's October date-range reports from official and CoCoRaHS stations likewise contained zeros. This is a **snow-free cross-check**, not a nonzero Michigan-depth accuracy validation.
+- NOAA footprint layer /2/query returned \`idp_validtime=1792551600000\` (2026-10-21T03:00Z) and \`idp_ingestdate=1792580716000\` (2026-10-21T11:05:16Z). These are different: a freshly retrieved value does not mean its analysis timestamp is now.
+- ACIS MultiStnData **date range** rows have no date column: each station returns \`data: [["7","1.0"],["7","0.3"],...]\`, corresponding to successive dates from the requested \`sdate\`. A *single-day* request returns \`data: ["6","T"]\`. The research endpoint uses multi-day requests. Earlier parser incorrectly required each row to start with YYYY-MM-DD and would consequently discard valid live observations.
+- USNIC IMS's live ImageServer returned class 3 at a point near Gaylord, while independent evidence indicated bare land. As code 3 is ice per service metadata, the IMS class at that coordinate is **not yet geospatially validated** and must remain advisory / research-only. Do not use the IMS value to upgrade or veto snow-trip rankings.
+- The parser changes in this branch normalize raw NOAA values into inches and decode actual ACIS range-format rows. No production merge was performed.
+
+Remaining release blocker: substantial **snow-covered Michigan** station-date comparisons (10+), simultaneous with dated live NOAA raster samples, and IMS georeferencing/classification reconciliation; unit/source-field confidence is stronger, but activity recommendation reliability is not yet demonstrated.
