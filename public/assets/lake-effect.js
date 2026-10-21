@@ -29,7 +29,7 @@ function hours(hs){
   const title=formatTime(h.at);
   item.appendChild(child("em",title));
   item.appendChild(child("strong",h.temperature_f==null?"—":h.temperature_f+"°F"));
-  item.appendChild(child("p","Wind: "+label(h.wind_from,"?")+" "+(h.wind_mph==null?"":h.wind_mph+" mph")));
+  item.appendChild(child("p","Wind: "+label(h.wind_from,"?")+" "+(h.wind_speed_text||"")));
   item.appendChild(child("p",h.forecast_snow?"NWS: snow":h.wind_aligned?"Wind favorable":"No overlap"));
   item.title=title+" · "+label(h.short_forecast)+" · wind "+label(h.wind_from);
   $("hours").appendChild(item);
