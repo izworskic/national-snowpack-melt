@@ -58,3 +58,12 @@ Porkies **winter road closure**: approach the winter sports complex from the eas
 The OSRM public demo is never called in the runtime itinerary flow. Directions use Google Maps to the official named public address; internal drive durations remain labeled **estimated**, and the verdict cannot claim a verified time-window reachability. NOAA snow zones remain *observation-only* map overlays.
 
 The map is click-to-load, CARTO keyed via main site's existing \`/api/carto-basemap-config\`, with venue popup/official source/directions, observation-only hollow pins, and a no-tiles fallback to the destination list.
+
+## Final browser verification and release preparation, Oct 21 2026
+After two harness-only fixes, the one-time Playwright Chromium job
+https://github.com/izworskic/national-snowpack-melt/actions/runs/39600220745
+passed at 390px and 1280px, with checked keyed CARTO tiles and lazy ground-station reads (one station request per opened panel), no horizontal overflow, no console page errors, and successful exact-coordinate national-snow handoff. The repository unit/integration suite passed 68/68.
+
+The protected Vercel preview itself was not opened in this browser run. Instead Chromium served the exact checked-in Michigan page HTML fixture with the snow repository's current branch assets and deterministic NOAA fixture JSON. This proves browser behavior independently of live backend availability. Use a post-merge production smoke to confirm integration of both Vercel repositories.
+
+Release strategy: keep `scripts/snow-browser-qa.cjs` as an opt-in script but remove the temporary Chromium download from the normal GitHub workflow so future merges have no browser-install cost. All recommendations remain public venues with **unverified parking** and **estimated driving times**. NOAA raster pixels are observation-only map elements and cannot be used for directions.
