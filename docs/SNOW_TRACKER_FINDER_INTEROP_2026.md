@@ -48,3 +48,13 @@ Interpretation: Date-aligned checks include some stations assimilated into the N
 New routing gate: If the top-rated Michigan candidate has only approximate road time, or its spatial road-snap failed, the backend labels the verdict \`route-unverified\` and the UI does not assert a verified drive-time window. These unverified points cannot be presented as a confident "best snow within X hours" verdict.
 
 The main website references a versioned externally hosted Michigan JS asset. Before release, review cache invalidation/version update with the site-shell repo. Protected preview browser navigation has not been independently tested.
+
+
+## Public destination release strategy
+Official Michigan DNR and operator pages document Hartwick Pines, Young State Park, Tahquamenon Falls, Hoffmaster and Porcupine Mountains Winter Sports Complex as public recreation destinations with snowshoe/XC/winter experiences. The sampled coordinate is the **park or venue vicinity**, not a surveyed parking stall. Parking, trail grooming, closures, posted rules and plowing must still be checked on the official page.
+
+Porkies **winter road closure**: approach the winter sports complex from the east via M-64; South Boundary Road is not plowed and closes to vehicle use during winter, per https://www.michigan.gov/skitheporkies/plan-your-visit. The resort ski chalet sampling point matches DNR's archived N46°49.080' W89°39.010' public GPS list. Model-only raw pixels can never generate a navigation destination.
+
+The OSRM public demo is never called in the runtime itinerary flow. Directions use Google Maps to the official named public address; internal drive durations remain labeled **estimated**, and the verdict cannot claim a verified time-window reachability. NOAA snow zones remain *observation-only* map overlays.
+
+The map is click-to-load, CARTO keyed via main site's existing \`/api/carto-basemap-config\`, with venue popup/official source/directions, observation-only hollow pins, and a no-tiles fallback to the destination list.

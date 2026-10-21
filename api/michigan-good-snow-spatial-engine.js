@@ -2,6 +2,7 @@ const BASE = require("./michigan-good-snow-engine");
 const B = BASE._test;
 const SNODAS = require("../lib/nohrsc-snodas");
 const SPATIAL = require("../lib/michigan-snow-spatial");
+const ACCESS = require("../lib/michigan-winter-access");
 
 const NOHRSC_BASE = "https://www.nohrsc.noaa.gov/nsa/discussions_text/National";
 const NWS_POINTS = "https://api.weather.gov/points";
@@ -135,15 +136,23 @@ async function buildDiscovery({lat,lon,driveHours=3,activity="any",tripHours=72,
   const depthPrior=settled[1].status==="fulfilled"?settled[1].value:null;
   const lsr=settled[2].status==="fulfilled"?settled[2].value:null;
   const discovery=settled[3].status==="fulfilled"?settled[3].value:{candidates:anchorFallback(origin,maxMinutes),mode:"anchor-fallback",diagnostics:{coarse_points:0,refined_points:0,zones_found:0}};
-  const snapped=await snapSpatialCandidates(discovery.candidates||[]);
-  const pool=snapped.rows.length?snapped.rows:anchorFallback(origin,maxMinutes);
-  const post=await Promise.allSettled([
-    routeCandidates(origin,pool),
-    SNODAS.fetchGrid(pool,fetchJson,12,nowMs)
-  ]);
-  const routed=post[0].status==="fulfilled"?post[0].value:pool.map(d=>({...d,drive_minutes:B.estimatedDriveMinutes(origin,d),distance_miles:Math.round(B.miles(lat,lon,d.lat,d.lon)),travel_source:"estimated"}));
+  // Research snow polygons are observation-only. No arbitrary snowy pixel
+  // can become a recommended parking spot or a public-access claim.
+  const spatialZones=(discovery.candidates||[]).filter(p=>p.discovery_source==='snodas-spatial')
+    .slice(0,8).map(p=>({
+      lat:p.lat,lon:p.lon,depth_inches:p.discovery_depth_hint,
+      name:p.name,kind:'modeled-snow-zone',access_verified:false
+    }));
+  const pool=ACCESS.candidates(origin,maxMinutes,activity);
+  // Never call the public OSRM demonstration service from production visitor
+  // search. Its usage is best-effort and unsuitable as a dependable router.
+  const routed=pool;
+  const snapped={failures:0,dropped:0};
+  const post=[{status:'fulfilled',value:routed},...await Promise.allSettled([
+    SNODAS.fetchGrid(pool,fetchJson,6,nowMs)
+  ])];
   const grid=post[1].status==="fulfilled"?post[1].value:null;
-  let candidates=routed.filter(d=>d.drive_minutes<=maxMinutes).map(d=>{
+  let candidates=routed.filter(d=>d.estimated<=maxMinutes*1.55).map(d=>{
     const observed=B.packConsensus(depthNow&&depthNow.rows,d.lat,d.lon);
     const priorObserved=B.packConsensus(depthPrior&&depthPrior.rows,d.lat,d.lon);
     const pack=B.fusePack(grid&&grid.byId&&grid.byId.get(d.id),observed,priorObserved);
@@ -167,10 +176,12 @@ async function buildDiscovery({lat,lon,driveHours=3,activity="any",tripHours=72,
   const sourceNames=["nohrsc-current","nohrsc-prior","nws-lsr","spatial-discovery"];
   return {
     retrieved_at:new Date().toISOString(),origin:{latitude:lat,longitude:lon},drive_limit_minutes:maxMinutes,activity,activity_label:p.label,trip_hours:tripHours,
-    verdict:noStrong?"no-strong-snow":
-      (best.travel_source!=="routed" ||
-        (best.discovery_source==="snodas-spatial" && best.road_snap_degraded))?
-      "route-unverified":"ranked",destinations:candidates.slice(0,5),
+    verdict:noStrong?"no-strong-snow":"route-unverified",destinations:candidates.slice(0,5),
+    map:{kind:'documented-public-destinations-plus-modeled-snow-observation-zones',
+      destinations:candidates.slice(0,5).map(d=>({id:d.id,name:d.name,lat:d.lat,lon:d.lon,
+         depth_inches:d.pack.depth,quality:d.model.quality,confidence:d.model.confidence,
+         access_status:d.access_status,official_url:d.url})),
+      snow_zones:spatialZones,warning:'Map pixels show modeled snow, not roads or approved access. Park pins represent venue vicinity, not winter-cleared parking.'},
     diagnostics:{
       discovery_mode:discovery.mode,
       spatial_degraded:settled[3].status!=="fulfilled",
@@ -178,6 +189,9 @@ async function buildDiscovery({lat,lon,driveHours=3,activity="any",tripHours=72,
       road_snap_failures:snapped.failures,road_snap_dropped:snapped.dropped,
       candidate_count:routed.filter(d=>d.drive_minutes<=maxMinutes).length,forecasted_count:finalists.length,
       routing_degraded:routed.some(d=>d.travel_source!=="routed"),snodas_sampled:grid&&grid.sampled||0,snodas_failures:grid&&grid.failures||0,snodas_degraded:!grid||(grid.failures||0)>0,
+      routing_provider:'none-estimated-only',
+      public_access_venues:pool.length,
+      unverified_winter_parking:pool.length,
       source_errors:[...settled.map((x,i)=>x.status==="rejected"?sourceNames[i]:null).filter(Boolean),post[0].status==="rejected"?"routing":null,post[1].status==="rejected"?"nohrsc-snodas-final":null].filter(Boolean)
     },
     sources:[
@@ -185,7 +199,7 @@ async function buildDiscovery({lat,lon,driveHours=3,activity="any",tripHours=72,
       {name:"NOAA/NOHRSC snow-depth station observations",url:depthNow&&depthNow.url||"https://www.nohrsc.noaa.gov/nsa/",updated_at:depthNow&&depthNow.date||null,provisional:true,note:"Used to validate the modeled depth and as a fallback if raster sampling fails."},
       {name:"NWS Local Storm Reports via Iowa Environmental Mesonet",url:lsr&&lsr.url||"https://mesonet.agron.iastate.edu/lsr/",updated_at:new Date(nowMs).toISOString(),note:"Recent snowfall is the largest nearby report in the window, not a summed 72-hour total."},
       {name:"NOAA/NWS hourly forecasts",url:"https://api.weather.gov/",updated_at:null},
-      {name:"OSRM routing and road snapping",url:ROUTING_BASE_URL,updated_at:null,note:"Spatial snow zones are snapped toward the nearest routable road when available; route times fall back to distance estimates if routing is unavailable."}
+      {name:"Official Michigan park and recreation operators",url:"https://www.michigan.gov/dnr/things-to-do/winter/snowshoe",updated_at:null,note:"Named public destinations are confirmed from operator pages; park-road plowing, trail status and parking still require live confirmation. Road times are estimates and are not sourced from a routing provider."}
     ],
     limitations:[
       "This ranks natural-snow opportunity, not groomed-trail quality, road safety, avalanche danger, parking access, land ownership or ice safety.",
@@ -193,7 +207,9 @@ async function buildDiscovery({lat,lon,driveHours=3,activity="any",tripHours=72,
       "A 1-km grid cannot resolve every local drift, forest opening, plowed area, wind-scoured ridge or lake-effect microgradient.",
       "Nearby station observations validate the model; large model/station disagreement lowers confidence instead of being averaged away.",
       "Recent snowfall reports and forecast survival are supporting evidence, not guarantees of trail or surface quality.",
-      "A low-confidence destination cannot receive the highest score even if its raw snow signal is large."
+      "A low-confidence destination cannot receive the highest score even if its raw snow signal is large.",
+      "Snowy 1-km grid cells are never navigational destinations. Named public venues appear only if included in the reviewed winter catalog.",
+      "Drive-time estimates are not verified routes, nor proof of winter plowing, legal roadside access, seasonal opening or available parking."
     ]
   };
 }
@@ -211,5 +227,5 @@ async function handler(req,res){
   try{return res.status(200).json(await buildDiscovery({lat,lon,driveHours,activity,tripHours}));}
   catch(error){return res.status(503).json({error:"Good-snow ranking is temporarily unavailable",detail:String(error&&error.message||error)});}
 }
-handler._test={...B,SPATIAL,finite,reportAnchor,nohrscUrl,snapSpatialCandidates,routeCandidates,why,anchorFallback,buildDiscovery};
+handler._test={...B,SPATIAL,ACCESS,finite,reportAnchor,nohrscUrl,snapSpatialCandidates,routeCandidates,why,anchorFallback,buildDiscovery};
 module.exports=handler;
