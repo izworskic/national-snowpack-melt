@@ -19,7 +19,7 @@ test("lake temperatures remain lakewide, dated and fail closed when stale",()=>{
  const csv="time,Sup,Mich,Huron,Erie,Ont\nUTC,degree_C,degree_C,degree_C,degree_C,degree_C\n2026-12-12T12:00:00Z,5.3,7.2,4.1,3.5,6.2\n";
  const v=M.parseLakeCsv(csv,"Michigan",NOW);
  assert.equal(v.status,"available");assert.equal(v.celsius,7.2);assert.equal(v.scope,"lakewide surface average");
- assert.equal(M.parseLakeCsv(csv,"Michigan",NOW+7*86400000).status,"unavailable");
+ assert.equal(M.parseLakeCsv(csv,"Michigan",NOW+7*86400000).status,"stale");
  assert.equal(M.parseLakeCsv("garbage","Michigan",NOW).status,"unavailable");
 });
 test("no false confident snow from surface wind alone",()=>{
