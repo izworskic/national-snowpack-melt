@@ -46,7 +46,7 @@ const server=http.createServer((req,res)=>{
    await ctx.route('**/api/michigan-snow-ground-evidence*',r=>{ground++;return r.fulfill({status:200,headers:{'access-control-allow-origin':'*'},contentType:'application/json',body:JSON.stringify(station)});});
    await ctx.route('**/leaflet.min.js',r=>r.fulfill({status:200,contentType:'text/javascript',body:fs.readFileSync(require.resolve('leaflet/dist/leaflet.js'))}));
    await ctx.route('**/leaflet.min.css',r=>r.fulfill({status:200,contentType:'text/css',body:fs.readFileSync(path.join(path.dirname(require.resolve('leaflet/dist/leaflet.js')),'leaflet.css'))}));
-   await ctx.route('**/basemaps.cartocdn.com/**',r=>{assert.equal(new URL(r.request().url()).searchParams.get('key'),'public-qa-key');carto++;return r.fulfill({status:200,contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+wP+zP9JxQAAAABJRU5ErkJggg==','base64')});});
+   await ctx.route('**/*.basemaps.cartocdn.com/**',r=>{assert.equal(new URL(r.request().url()).searchParams.get('key'),'public-qa-key');carto++;return r.fulfill({status:200,contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+wP+zP9JxQAAAABJRU5ErkJggg==','base64')});});
    const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));
    await page.goto(base+'/michigan-snow-depth/',{waitUntil:'domcontentloaded'});
    await page.locator('#goodSnowOrigin').fill('Bay City, MI');
@@ -60,6 +60,8 @@ const server=http.createServer((req,res)=>{
    await page.locator('#goodSnowMapLoad').click();
    await page.locator('.leaflet-container').waitFor({timeout:18000});
    await page.waitForFunction(()=>document.querySelectorAll('.leaflet-interactive').length>=3);
+   await page.waitForFunction(()=>Array.from(document.querySelectorAll('img.leaflet-tile')).some(x=>x.src.includes('basemaps.cartocdn.com')),null,{timeout:8000});
+   await page.waitForTimeout(120);
    assert.ok(carto>0,'Map rendered keyed CARTO tiles');
    const dim=await page.evaluate(()=>[document.documentElement.clientWidth,document.documentElement.scrollWidth]);
    assert.ok(dim[1]<=dim[0]+2,'mobile/desktop overflow '+JSON.stringify(dim));
