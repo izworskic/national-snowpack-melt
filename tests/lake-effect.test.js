@@ -52,7 +52,8 @@ test("alert classification distinguishes lake-effect language from a generic war
 });
 test("endpoint integrates one NWS point, hourly, alerts and NOAA GLSEA; degraded alert feed is explicit",async()=>{
  const orig=global.fetch;let calls=[];
- global.fetch=async url=>{
+ global.fetch=async input=>{
+  const url=String(input);
   calls.push(url);let body,ok=true;
   if(url.includes("/points/"))body={properties:{forecastHourly:"https://api.weather.gov/gridpoints/MQT/20,20/forecast/hourly"}};
   else if(url.includes("/forecast/hourly"))body={properties:{updated:new Date(NOW).toISOString(),periods:Array.from({length:12},(_,i)=>mkHour(i))}};
