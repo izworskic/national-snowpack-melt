@@ -11,6 +11,15 @@ async function json(url, timeout=6000) {
   return data;
 }
 module.exports=async function handler(req,res) {
+  const origin=String(req.headers&&req.headers.origin||"");
+  // Public read-only evidence endpoint consumed on demand by the canonical
+  // chrisizworski.com Michigan finder, not by other arbitrary browser origins.
+  const allowed=new Set(["https://chrisizworski.com","https://www.chrisizworski.com",
+    "https://chrisizworski-com-preview.vercel.app"]);
+  if(allowed.has(origin)){
+    res.setHeader("Access-Control-Allow-Origin",origin);
+    res.setHeader("Vary","Origin");
+  }
   res.setHeader('Content-Type','application/json; charset=utf-8');
   res.setHeader('X-Robots-Tag','noindex,nofollow');
   res.setHeader('Cache-Control','public, s-maxage=3600, stale-while-revalidate=3600');
