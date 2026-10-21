@@ -1,7 +1,7 @@
 /* Great Lakes lake-effect reader: no client-side snow probabilities or band maps. */
 (function(){
 "use strict";
-const ENDPOINT=location.hostname.startsWith("national-snowpack-melt")&&location.hostname.endsWith(".vercel.app")?"/api/lake-effect":"https://national-snowpack-melt.vercel.app/api/lake-effect";
+const ENDPOINT="/api/lake-effect";
 const $=id=>document.getElementById(id);
 const regions=[];let current=null,requestId=0;
 const STATES={MI:"Michigan",WI:"Wisconsin",OH:"Ohio",PA:"Pennsylvania",NY:"New York"};
