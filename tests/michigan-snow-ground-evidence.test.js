@@ -31,7 +31,7 @@ test('ACIS requests snwd distinct from snowfall with a bounded date range',()=>{
   assert.deepEqual(p.meta,['name','ll','sids','uid','state']);
 });
 test('ACIS real MultiStnData row shape has no date column; index derives date',()=>{
-  // Sanitized real Gaylord 2026-01-14..17 four-day station rows.
+  // Sanitized data shaped like the live Gaylord ACIS 5-day range response.
   const payload={data:[
     {meta:{name:'GAYLORD 9SSW',uid:29225,ll:[-84.71891,44.90715],sids:['KAPX 5']},
       data:[['7','1.0'],['7','0.3'],['7','3.7'],['9','3.9'],['M','M']]},
@@ -42,9 +42,9 @@ test('ACIS real MultiStnData row shape has no date column; index derives date',(
   assert.equal(r.stationCount,2);
   const a=r.stations.find(s=>s.stationId==='29225');
   assert.equal(a.measuredOn,'2026-01-14');
-  assert.equal(a.depthInches,7);
+  assert.equal(a.depthInches,9);
   const c=r.stations.find(s=>s.stationId==='96811');
-  assert.equal(c.depthInches,13);
+  assert.equal(c.depthInches,15);
   assert.equal(c.networkHint,'CoCoRaHS indexed by ACIS');
 });
 test('ACIS parser preserves zero, trace and missing and rejects old dates',()=>{
