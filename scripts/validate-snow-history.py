@@ -43,6 +43,7 @@ def stations(day):
     result=[]
     for station in data.get('data',[]):
         meta=station.get('meta',{}); coord=meta.get('ll') or []
+        if str(meta.get('state','')).upper()!='MI':continue
         values=station.get('data') or []
         if len(coord)!=2 or not values:continue
         # A one-day request is ["SNWD"], unlike date-range [["SNWD"],...].
@@ -50,7 +51,7 @@ def stations(day):
         val=str(values[0]).strip()
         try: observed=float(val)
         except ValueError:continue
-        if not 0<observed<=120:continue
+        if not 0<=observed<=120:continue
         result.append({'id':str(meta.get('uid') or ''),'station':meta.get('name') or '',
                        'lat':float(coord[1]),'lon':float(coord[0]),
                        'observedIn':observed})
@@ -70,13 +71,16 @@ def validate(day,min_pairs):
             raw=gzip.decompress(fp.read())
     if len(raw)!=2*COLS*ROWS:raise ValueError(f'Depth grid bytes mismatch: {len(raw)}')
     observations=stations(day)
-    paired=[]; seen=set()
+    paired=[]; bare=[]; seen=set()
     for s in observations:
         key=(round(s['lat'],3),round(s['lon'],3))
         if key in seen:continue
         seen.add(key)
         model=sample(raw,s['lat'],s['lon'])
         if model is None:continue
+        if s['observedIn']==0:
+            bare.append({'station':s['station'],'modeledIn':model})
+            continue
         s['modeledIn']=model;s['absErrorIn']=round(abs(model-s['observedIn']),2)
         paired.append(s)
     if len(paired)<min_pairs:raise ValueError(f'Only {len(paired)} valid nonzero depth pairs (minimum {min_pairs})')
@@ -85,9 +89,12 @@ def validate(day,min_pairs):
       'archiveDate':day,'archiveUrl':url,'analysisValidTime':'~06:00 UTC nominal',
       'measuredStationDate':day,'pairCount':len(paired),
       'meanAbsoluteErrorIn':round(statistics.mean(errs),2),
+      'p90AbsoluteErrorIn':round(sorted(errs)[int((len(errs)-1)*0.90)],2),
+      'zeroSnowPairs':len(bare),
+      'model3InOrMoreWhenStationZero':sum(b['modeledIn']>=3 for b in bare),
       'medianAbsoluteErrorIn':round(statistics.median(errs),2),
       'percentWithin3In':round(100*sum(x<=3 for x in errs)/len(errs),1),
-      'regionalAndTimestampCaveat':'Station daily observation time may differ from 06UTC model; 1km terrain heterogeneity; this is a diagnostic not a guarantee.',
+      'regionalAndTimestampCaveat':'MI-only dates, 1-km analysis near stations. Station daily observation time may differ from 06UTC; NOAA assimilates some station data. Agreement is NOT independent predictive validation.',
       'examples':sorted(paired,key=lambda p:p['absErrorIn'])[:8],
       'largestDifferences':sorted(paired,key=lambda p:p['absErrorIn'],reverse=True)[:8]
       },indent=2))
