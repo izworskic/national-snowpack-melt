@@ -414,7 +414,24 @@ document.addEventListener("DOMContentLoaded",function(){
     document.getElementById("updated").textContent="Retrieved "+N.fmtDate(d.retrieved_at)+(d.degraded?" · one or more source families degraded":"")+(stale?" · "+stale+" stale source family":"");
     if(typeof N.track==="function")N.track("National Snow Result",{relevant:Boolean(d.snow_relevant),pack:Boolean(d.pack_available),level:d.decision.level||"unknown",sources_available:(d.sources||[]).filter(function(s){return s.available!==false}).length});
   }
-  N.bind(form,run);const q=new URLSearchParams(location.search).get("q");if(q){form.querySelector("input").value=q;form.requestSubmit();}
+  N.bind(form,run);
+  const qp=new URLSearchParams(location.search),q=qp.get("q");
+  const latText=qp.get("lat"),lonText=qp.get("lon");
+  const lat=latText!==null&&latText.trim()!==""?Number(latText):NaN;
+  const lon=lonText!==null&&lonText.trim()!==""?Number(lonText):NaN;
+  if(Number.isFinite(lat)&&Number.isFinite(lon)&&lat>=-90&&lat<=90&&lon>=-180&&lon<=180){
+    const place=String(qp.get("place")||lat.toFixed(3)+", "+lon.toFixed(3)).slice(0,72);
+    const stateCode=/^[A-Z]{2}$/.test(String(qp.get("state")||"").toUpperCase())?
+      String(qp.get("state")).toUpperCase():null;
+    const loc={latitude:lat,longitude:lon,displayName:place,place,stateCode};
+    const status=form.parentElement.querySelector(".status");
+    if(status)status.textContent="Checking snowpack at the linked map coordinates…";
+    // This is a point query, not a city/ZIP geocode: preserves the Michigan
+    // finder’s actual snow-zone coordinate even when nearby city labels differ.
+    run(loc).catch(function(){
+      if(status)status.textContent="Snowpack data is unavailable at this point. Try searching by city or ZIP.";
+    });
+  }else if(q){form.querySelector("input").value=q;form.requestSubmit();}
 });
 </script>
 </body></html>
