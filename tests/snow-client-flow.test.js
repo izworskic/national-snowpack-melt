@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.join(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const wait=()=>new Promise(r=>setImmediate(r));
-function node(){return {textContent:'',innerHTML:'',hidden:false,dataset:{},style:{},addEventListener(){},querySelector(){return null;}};}
+function node(){return {textContent:'',innerHTML:'',hidden:false,dataset:{},style:{},addEventListener(){},insertBefore(){},querySelector(){return null;}};}
 function fakeN(){return {esc:x=>String(x??''),fmtDate:x=>String(x),fmtInZone:x=>String(x),label:x=>x.place||x.displayName||'place',track(){},readJsonResponse:async r=>r.json()};}
 test('national page executes coordinate handoff and calls snow API without geocoding',async()=>{
  const html=read('public/national-tools/snow/index.html');
@@ -37,7 +37,7 @@ test('Michigan UI fetches rankings first and station data only when disclosure o
  let go=null,openDetails=null;const calls=[];
  form.querySelector=s=>inputs[s.match(/\[name=(\w+)\]/)?.[1]]||node();
  list.addEventListener=(key,cb)=>{if(key==='click')openDetails=cb;};
- const document={readyState:'complete',addEventListener(){},getElementById:id=>id==='goodSnowForm'?form:id==='goodSnowList'?list:(ids[id] ||= node())};
+ const document={readyState:'complete',addEventListener(){},createElement:()=>node(),getElementById:id=>id==='goodSnowForm'?form:id==='goodSnowList'?list:(ids[id] ||= node())};
  const N=fakeN();N.bind=(f,cb)=>{go=cb;};
  const d={name:'Gaylord',lat:45.0275,lon:-84.6748,drive_minutes:120,travel_source:'routed',region:'Northern Lower',
    discovery_source:'anchor',pack:{depth:8,source:'nohrsc-snodas-1km',confidence:'high',validation:'model and stations agree'},
