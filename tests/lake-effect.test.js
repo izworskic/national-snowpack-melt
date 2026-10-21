@@ -16,9 +16,9 @@ test("compass sectors wrap safely; unknown wind does not become alignment",()=>{
  assert.equal(M.bearing("garbage"),null);
 });
 test("lake temperatures remain lakewide, dated and fail closed when stale",()=>{
- const csv="time,Sup,Mich,Huron,Erie,Ont\nUTC,degree_C,degree_C,degree_C,degree_C,degree_C\n2026-12-12T12:00:00Z,5.3,7.2,4.1,3.5,6.2\n";
+ const csv="Year,Day,Sup,Mich,Huron,Erie,Ont\n, ,degree_C,degree_C,degree_C,degree_C,degree_C\n2026,346,5.3,7.2,4.1,3.5,6.2\n";
  const v=M.parseLakeCsv(csv,"Michigan",NOW);
- assert.equal(v.status,"available");assert.equal(v.celsius,7.2);assert.equal(v.scope,"lakewide surface average");
+ assert.equal(v.status,"available");assert.equal(v.celsius,7.2);assert.equal(v.scope,"lakewide surface average");assert.match(API._test.lakeUrl(NOW),/Year%2CDay/);
  assert.equal(M.parseLakeCsv(csv,"Michigan",NOW+7*86400000).status,"stale");
  assert.equal(M.parseLakeCsv("garbage","Michigan",NOW).status,"unavailable");
 });
@@ -58,7 +58,7 @@ test("endpoint integrates one NWS point, hourly, alerts and NOAA GLSEA; degraded
   if(url.includes("/points/"))body={properties:{forecastHourly:"https://api.weather.gov/gridpoints/MQT/20,20/forecast/hourly"}};
   else if(url.includes("/forecast/hourly"))body={properties:{updated:new Date(NOW).toISOString(),periods:Array.from({length:12},(_,i)=>mkHour(i))}};
   else if(url.includes("/alerts/active")){ok=false;body={}}
-  else body="time,Sup,Mich,Huron,Erie,Ont\n2026-12-14T00:00:00Z,5,6,4,3,4\n";
+  else body="Year,Day,Sup,Mich,Huron,Erie,Ont\n2026,348,5,6,4,3,4\n";
   return {ok,status:ok?200:503,json:async()=>body,text:async()=>body};
  };
  try{
