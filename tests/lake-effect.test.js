@@ -56,7 +56,7 @@ test("endpoint integrates one NWS point, hourly, alerts and NOAA GLSEA; degraded
   calls.push(url);let body,ok=true;
   if(url.includes("/points/"))body={properties:{forecastHourly:"https://api.weather.gov/gridpoints/MQT/20,20/forecast/hourly"}};
   else if(url.includes("/forecast/hourly"))body={properties:{updated:new Date(NOW).toISOString(),periods:Array.from({length:12},(_,i)=>mkHour(i))}};
-  else if(url.includes("/alerts/active")){ok=false;body={}};
+  else if(url.includes("/alerts/active")){ok=false;body={}}
   else body="time,Sup,Mich,Huron,Erie,Ont\n2026-12-14T00:00:00Z,5,6,4,3,4\n";
   return {ok,status:ok?200:503,json:async()=>body,text:async()=>body};
  };
