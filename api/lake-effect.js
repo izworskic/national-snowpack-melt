@@ -1,6 +1,7 @@
 "use strict";
 const M=require("../lib/lake-effect");
 const C=require("../lib/lake-effect-context");
+const U=require("../lib/lake-effect-upper-air");
 const UA="ChrisIzworskiLakeEffect/1.1 (+https://chrisizworski.com/lake-effect-snow/)";
 async function getJson(url,ms=6000){
  const u=new URL(url);
@@ -23,12 +24,13 @@ function responseHeaders(req,res){
 }
 async function report(region,now=Date.now()){
  const id=region.id,pointUrl="https://api.weather.gov/points/"+region.lat.toFixed(4)+","+region.lon.toFixed(4);
- const [point,rawAlerts,rawLake,rawWssi,rawIce]=await Promise.allSettled([
+ const [point,rawAlerts,rawLake,rawWssi,rawIce,rawUpperAir]=await Promise.allSettled([
   getJson(pointUrl,6000),
   getJson("https://api.weather.gov/alerts/active?point="+region.lat.toFixed(4)+","+region.lon.toFixed(4),6500),
   getJson(lakeUrl(now),5500),
   getJson(C.wssiUrl(region.lat,region.lon),5500),
-  getJson(C.iceUrl(region.lake),5500)
+  getJson(C.iceUrl(region.lake),5500),
+  U.fetchUpperAir(fetch,4500)
  ]);
  if(point.status!=="fulfilled")throw Error("NWS point metadata not currently available");
  const hourlyUrl=point.value?.properties?.forecastHourly;
@@ -43,22 +45,32 @@ async function report(region,now=Date.now()){
  const verdict=M.assess({region,hours,alerts,lakeTemp,forecastUpdated,now});
  const wssi=rawWssi.status==="fulfilled"?C.wssiAtPoint(rawWssi.value,now):{status:"unavailable",reason:"WSSI GIS source unavailable"};
  const lakeIce=rawIce.status==="fulfilled"?C.iceAtPoint(rawIce.value,region.lake,now):{status:"unavailable",reason:"USNIC ice GIS source unavailable"};
+ const upperAir=rawUpperAir.status==="fulfilled"?U.decode(rawUpperAir.value,region.lake,lakeTemp,now):{status:"unavailable",reason:"NOAA GFS model publication unavailable",source:U.RELEASE};
+ // Model evidence never creates or upgrades an NWS snow or warning verdict.
+ if(upperAir.status==="available"&&verdict.level==="favored"&&!verdict.official_warning){
+  const m=upperAir.current;
+  if(m.instability_screen==="limited-contrast"||m.shear_screen==="strong-turning"){
+   if(verdict.confidence==="high")verdict.confidence="medium";
+   verdict.model_caution="Coarse GFS offshore 850/925-mb conditions may limit organized bands. NWS snow guidance remains authoritative.";
+  }
+ }
  // These independent observations inform the reader, never the NWS warning or band verdict.
  if(alertsStatus!=="available"){
   verdict.confidence="low";
   verdict.impact="NWS alerts are unavailable. Check weather.gov before making travel plans.";
  }
  return {status:"ok",product:"lake-effect-snow-decision",generated_at:new Date(now).toISOString(),
-  region,verdict,alerts,alerts_status:alertsStatus,lake_temperature:lakeTemp,lake_ice_reference:lakeIce,wssi_impact:wssi,
+  region,verdict,alerts,alerts_status:alertsStatus,lake_temperature:lakeTemp,lake_ice_reference:lakeIce,wssi_impact:wssi,upper_air:upperAir,
   hours,forecast_updated:forecastUpdated,
   sources:{nws_point:pointUrl,nws_hourly:hourlyUrl,nws_alerts:"https://api.weather.gov/alerts/active?point="+region.lat+","+region.lon,
    lake_temperatures:"https://apps.glerl.noaa.gov/coastwatch/ftp/glsea/avgtemps/glsea-temps_1024_3.dat",
-   wssi:C.WSSI,ice_analysis:C.ICE,
+   wssi:C.WSSI,ice_analysis:C.ICE,upper_air:U.RELEASE,
    forecast_basis:"NWS local hourly point forecast (not an upstream band simulation)",
    lake_basis:"NOAA GLSEA daily lakewide surface average; not local fetch or 850-mb air temperature"},
   limitations:["Lake-effect snowbands can move sharply after small wind shifts; region summaries are not band forecasts.",
    "Surface wind exposure is a regional heuristic, not measured upwind flow aloft.",
-   "Lakewide water temperature is context only; upstream 850-mb instability, fetch, shear and inversions are not resolved here.",
+   "GFS 850-mb offshore temperature and 925–850-mb model turning are screening context only, not the inversion profile, exact fetch or a calibrated snow forecast.",
+   "Lake-to-850 contrast mixes a NOAA lakewide daily water average with a single offshore GFS point. It does not locate a band or replace NWS snowfall guidance.",
    "National Ice Center ice class samples only one offshore point, not lakewide ice coverage. Stale analysis is never current open water.",
    "WPC WSSI describes general forecast winter impacts, not lake-effect band position or an NWS warning.",
    "Weather warnings are authoritative; this tool never replaces NWS guidance, road closures or real-time traffic.",
