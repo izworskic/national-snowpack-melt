@@ -42,7 +42,7 @@ function render(d){
  text("matched",label(v.first_12h?.overlap_hours,"0")+" / "+label(v.first_12h?.valid_hours,"0"));
  text("alert-count",d.alerts_status==="available"?String(d.alerts?.length||0):"Unknown");
  text("alert-status",d.alerts_status==="available"?"Active regional point alerts":"Alert source unavailable");
- text("method",(region.description||region.name)+". Confidence is qualitative evidence agreement, not a probability or a forecast of exact band placement.");
+ text("method",(region.description||region.name)+". Confidence is qualitative evidence agreement, not a probability or a forecast of exact band placement."+(v.first_12h?.wind_unknown_hours>0?" NWS wind direction is missing in "+v.first_12h.wind_unknown_hours+" of the next "+v.first_12h.valid_hours+" hours; confidence is reduced.":""));
  clear("alerts");
  if(d.alerts_status!=="available"){
   $("alerts").appendChild(child("p","Official alert feed unavailable. Verify with weather.gov before travel.")); 
