@@ -1,0 +1,46 @@
+name: Lake-effect release smoke
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/lake-effect-release-smoke.yml"
+      - "scripts/lake-effect-live-smoke.cjs"
+      - "scripts/lake-effect-browser-smoke.cjs"
+      - "lib/lake-effect.js"
+      - "api/lake-effect.js"
+      - "public/lake-effect-snow/**"
+      - "public/assets/lake-effect.js"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lake-effect-release-smoke
+  cancel-in-progress: true
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify official NOAA and NWS feeds
+        run: node scripts/lake-effect-live-smoke.cjs
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser harness
+        run: npm install --no-save --ignore-scripts --no-audit --no-fund playwright-core@1.58.0
+      - name: Test mobile and desktop browser UI
+        run: |
+          echo "CHROME_PATH=$(command -v google-chrome || command -v chromium || command -v chromium-browser)" >> "$GITHUB_ENV"
+          node scripts/lake-effect-browser-smoke.cjs
