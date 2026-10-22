@@ -8,7 +8,7 @@ function fixture(id){return {status:"ok",region:REGIONS.find(r=>r.id===id)||REGI
  alerts_status:"available",alerts:[{event:"Lake Effect Snow Warning",headline:"Snowbelt statement",lakeEffect:true,url:"https://api.weather.gov/alerts/mock"}],
  lake_temperature:{status:"available",fahrenheit:42,celsius:5.6,date:ts(-24)},
  verdict:{headline:"Forecast change likely later",impact:"Watch changing conditions",confidence:"medium",timing_window:"12–24 hours",first_12h:{overlap_hours:0,valid_hours:12}},
- upper_air:{status:"available",issued_at:ts(-6),current:{valid_at:ts(0),temp_850_c:-10,wind_850_from_deg:310,wind_925_from_deg:320,shear_925_850_deg:10,delta_t_c:15,instability_screen:"favorable-contrast",shear_screen:"modest-turning"},forecast:[{valid_at:ts(0),temp_850_c:-10,wind_850_from_deg:310,shear_925_850_deg:10,delta_t_c:15}]},
+ upper_air:{status:id==="mi-gaylord"?"stale":"available",issued_at:ts(-6),current:{valid_at:ts(0),temp_850_c:-10,wind_850_from_deg:310,wind_925_from_deg:320,shear_925_850_deg:10,delta_t_c:15,instability_screen:"favorable-contrast",shear_screen:"modest-turning"},forecast:[0,6,12,18,24,36,48,60,72].map((h,i)=>({valid_at:ts(h),temp_850_c:-10+i,wind_850_from_deg:310-i*3,wind_925_from_deg:320,shear_925_850_deg:10+i*4,delta_t_c:15-i}))},
  hours,sources:{nws_hourly:"https://api.weather.gov/points/46,-87",nws_alerts:"https://api.weather.gov/alerts/active"},
  limitations:["No exact band-position forecast."]};}
 const root=path.resolve(__dirname,"../public");
@@ -20,7 +20,7 @@ const server=http.createServer((req,res)=>{
   if(u.searchParams.get("region")==="ny-buffalo"){res.statusCode=503;return res.end(JSON.stringify({status:"unavailable"}));}
   return res.end(JSON.stringify(fixture(u.searchParams.get("region"))));
  }
- const file=u.pathname==="/assets/lake-effect.js"?"assets/lake-effect.js":"lake-effect-snow/index.html";
+ const file=u.pathname==="/assets/lake-effect.js"?"assets/lake-effect.js":u.pathname==="/assets/lake-effect-explainer.js"?"assets/lake-effect-explainer.js":"lake-effect-snow/index.html";
  res.setHeader("Content-Type",file.endsWith(".js")?"text/javascript":"text/html");
  fs.createReadStream(path.join(root,file)).pipe(res);
 });
@@ -37,6 +37,23 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator("#confidence").innerText(),"MEDIUM");
   assert.equal(await page.locator("#timing-window").innerText(),"12–24 hours");
   assert.equal(await page.locator(".hour").count(),72);
+  assert.equal(await page.locator(".story-period").count(),4);
+  assert.equal(await page.locator(".story-hour").count(),72);
+  assert.equal(await page.locator("#story-contrast circle").count(),9);
+  assert.equal(await page.locator("#story-shear circle").count(),9);
+  assert.match(await page.locator("#story-title").innerText(),/wind|snow/i);
+  const initial=await page.locator("#story-range").innerText();
+  await page.locator(".story-period").nth(2).click();
+  assert.equal(await page.locator(".story-period[aria-pressed=true]").count(),1);
+  assert.notEqual(await page.locator("#story-range").innerText(),initial);
+  await page.locator(".story-hour").nth(20).click();
+  assert.match(await page.locator("#story-model").innerText(),/Selected NWS hour/);
+  await page.locator("#story-contrast circle").nth(3).click();
+  assert.match(await page.locator("#story-model").innerText(),/Selected offshore model snapshot/);
+  await page.locator("#story-shear circle").nth(4).focus();
+  await page.keyboard.press("Enter");
+  assert.match(await page.locator("#story-model").innerText(),/Selected offshore model snapshot/);
+  assert.match(await page.locator("#story-model-note").innerText(),/not interpolated hourly/);
   assert.match(await page.locator("#upper-air-model").innerText(),/15°C/);
   assert.match(await page.locator("#upper-air-model").innerText(),/850-mb air/);
   const d=await page.evaluate(()=>({body:document.documentElement.scrollWidth,viewport:innerWidth,timeline:document.querySelector(".hours").scrollWidth,container:document.querySelector(".hours").clientWidth}));
@@ -47,8 +64,14 @@ const server=http.createServer((req,res)=>{
   await page.locator("#check").click();
   await page.waitForFunction(()=>new URL(location.href).searchParams.get("region")==="ny-oswego");
   assert.equal((await page.locator("#lake-name").innerText()).toLowerCase(),"lake ontario");
+  assert.equal(await page.locator("#story-contrast circle").count(),9);
+  assert.match(await page.locator("#story-model").innerText(),/GFS offshore snapshot/);
+  await page.locator("#state").selectOption("MI");await page.locator("#region").selectOption("mi-gaylord");await page.locator("#check").click();
+  await page.waitForFunction(()=>new URL(location.href).searchParams.get("region")==="mi-gaylord");
+  assert.equal(await page.locator("#story-contrast circle").count(),0,"Stale model must never leave old plotted values");
+  assert.match(await page.locator("#story-model-note").innerText(),/unavailable or stale/);
   await page.locator("#locate").click();
-  await page.locator("#region").selectOption("ny-buffalo");
+  await page.locator("#state").selectOption("NY");await page.locator("#region").selectOption("ny-buffalo");
   await page.locator("#check").click();
   await page.waitForFunction(()=>document.getElementById("status").textContent.includes("Forecast unavailable"));
   assert.equal(await page.locator("#dashboard").isVisible(),false);
