@@ -55,6 +55,18 @@ test("later snow-band possibility is not hidden by a quiet first 12 hours",()=>{
  assert.equal(v.level,"favored");assert.equal(v.timing_window,"24–48 hours");assert.notEqual(v.confidence,"high");
  assert.equal(v.first_12h.overlap_hours,0);assert.ok(v.next_72h.snow_forecast_hours>=14);
 });
+test("partial wind forecasts retain usable evidence but lower confidence",()=>{
+ const region=M.allowed["mi-marquette"],periods=Array.from({length:12},(_,i)=>mkHour(i,i<8?"NW":"",i<8?"Snow Showers":"Cloudy"));
+ const rows=M.hourRows(periods,region.windSector,NOW);
+ const v=M.assess({region,hours:rows,alerts:[],lakeTemp:{status:"available"},forecastUpdated:new Date(NOW).toISOString(),now:NOW});
+ assert.equal(v.data_ok,true);assert.equal(v.first_12h.wind_known_hours,8);
+ assert.equal(v.first_12h.wind_unknown_hours,4);assert.equal(v.confidence,"low");
+});
+test("less than six hours of known wind does not allow a full assessment",()=>{
+ const region=M.allowed["mi-marquette"],periods=Array.from({length:12},(_,i)=>mkHour(i,i<4?"NW":"", "Snow Showers"));
+ const v=M.assess({region,hours:M.hourRows(periods,region.windSector,NOW),alerts:[],lakeTemp:{status:"available"},forecastUpdated:new Date(NOW).toISOString(),now:NOW});
+ assert.equal(v.data_ok,false);assert.equal(v.level,"insufficient");
+});
 test("stale NWS hourly issue time fails closed",()=>{
  const region=M.allowed["mi-marquette"],hours=M.hourRows(Array.from({length:12},(_,i)=>mkHour(i)),region.windSector,NOW);
  const v=M.assess({region,hours,alerts:[],lakeTemp:{status:"available"},forecastUpdated:new Date(NOW-20*3600000).toISOString(),now:NOW});
