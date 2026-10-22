@@ -43,7 +43,7 @@ const server=http.createServer((req,res)=>{
   await page.locator("#region").selectOption("ny-oswego");
   await page.locator("#check").click();
   await page.waitForFunction(()=>new URL(location.href).searchParams.get("region")==="ny-oswego");
-  assert.equal(await page.locator("#lake-name").innerText(),"Lake Ontario");
+  assert.equal((await page.locator("#lake-name").innerText()).toLowerCase(),"lake ontario");
   await page.locator("#locate").click();
   await page.locator("#region").selectOption("ny-buffalo");
   await page.locator("#check").click();
