@@ -35,9 +35,36 @@ function hours(hs){
   $("hours").appendChild(item);
  });
 }
+function renderUpperAir(d){
+ const air=d.upper_air||{};
+ let box=$("upper-air-model");
+ if(!box){box=child("div",null,"upper-air-model");box.id="upper-air-model";$("lake-note").after(box)}
+ box.replaceChildren();
+ box.appendChild(child("h3","Air above the lake · 850 mb GFS"));
+ if(air.status!=="available"){
+  box.appendChild(child("p",air.status==="stale"?"Upper-air forecast is stale or does not cover the next 12 hours. No instability values shown.":"Upper-air model data unavailable. No air temperature, stability or shear values have been estimated.","small"));
+  return;
+ }
+ const model=air.current||{};
+ const asDegrees=x=>typeof x==="number"?Math.round(x)+"°":"—";
+ box.appendChild(child("p","Model valid "+formatDate(model.valid_at)+" · Run "+formatDate(air.issued_at)+". A representative offshore model point, not your town or an exact snowband."));
+ box.appendChild(child("p","850-mb air: "+label(model.temp_850_c)+"°C · 850-mb wind from "+asDegrees(model.wind_850_from_deg)+" · 925-mb wind from "+asDegrees(model.wind_925_from_deg)+"."));
+ box.appendChild(child("p","925–850-mb directional turning: "+asDegrees(model.shear_925_850_deg)+" ("+label(model.shear_screen).replaceAll("-"," ")+"). This is a two-level shear screen, not a full sounding.","small"));
+ if(model.delta_t_c===null||model.delta_t_c===undefined){
+  box.appendChild(child("p","Air–lake temperature contrast unavailable because a fresh NOAA water reading could not be verified.","small"));
+ }else{
+  box.appendChild(child("p","Lakewide water minus offshore GFS 850-mb air: "+model.delta_t_c+"°C ("+label(model.instability_screen).replaceAll("-"," ")+"). Around 13°C is a conventional instability screening threshold, not a prediction of snowfall."));
+ }
+ const detail=child("details");detail.appendChild(child("summary","Explore "+(air.forecast||[]).length+" model forecast snapshots (up to 72h)"));
+ const list=child("div",null,"small");
+ (air.forecast||[]).forEach(h=>list.appendChild(child("p",formatDate(h.valid_at)+" · 850 mb "+h.temp_850_c+"°C · wind from "+asDegrees(h.wind_850_from_deg)+" · turning "+asDegrees(h.shear_925_850_deg)+(h.delta_t_c===null?"":" · contrast "+h.delta_t_c+"°C"))));
+ detail.appendChild(list);box.appendChild(detail);
+ box.appendChild(child("p","The water value is a dated lakewide average; air and shear are coarse GFS model values. Inversions, humidity and local fetch remain unresolved.","small"));
+ const cite=child("a","NOAA GFS pressure-level model data");cite.href="https://nomads.ncep.noaa.gov/";cite.target="_blank";cite.rel="noopener";box.appendChild(cite);
+}
 function render(d){
  const v=d.verdict||{},region=d.region||{};
- text("headline",label(v.headline));text("impact",label(v.impact));text("timing-window",label(v.timing_window));
+ text("headline",label(v.headline));text("impact",label(v.impact)+(v.model_caution?" "+v.model_caution:""));text("timing-window",label(v.timing_window));
  text("confidence",label(v.confidence).toUpperCase());
  text("matched",label(v.first_12h?.overlap_hours,"0")+" / "+label(v.first_12h?.valid_hours,"0"));
  text("alert-count",d.alerts_status==="available"?String(d.alerts?.length||0):"Unknown");
@@ -55,6 +82,7 @@ function render(d){
  text("lake-name","Lake "+label(region.lake));
  text("lake-reading",t.status==="available"?"NOAA lakewide average: "+t.fahrenheit+"°F ("+t.celsius+"°C)":t.status==="stale"?"Last NOAA lake reading is stale.": "Current lake temperature is unavailable.");
  text("lake-note",t.date?"GLSEA analysis dated "+formatDate(t.date)+". Lakewide, satellite-derived; not a shoreline thermometer or instability measurement.":"NOAA lakewide analysis could not be verified. No temperature value was substituted.");
+ renderUpperAir(d);
  text("source-age","NWS hourly forecast updated: "+formatDate(d.forecast_updated)+". Data retrieved: "+formatDate(d.generated_at)+".");
  text("limitations",(d.limitations||[]).join(" "));
  const f=$("forecast-link"),a=$("alert-link");

@@ -93,7 +93,7 @@ test("endpoint integrates one NWS point, hourly, alerts and NOAA GLSEA; degraded
   assert.equal(d.status,"ok");assert.equal(d.alerts_status,"unavailable");
   assert.equal(d.verdict.confidence,"low");assert.match(d.verdict.impact,/unavailable/i);
   assert.equal(d.lake_temperature.scope,"lakewide surface average");
-  assert.equal(calls.length,6);assert.equal(d.wssi_impact.status,"not-depicted");assert.equal(d.lake_ice_reference.status,"unavailable");
+  assert.equal(calls.length,7);assert.equal(d.upper_air.status,"unavailable");assert.equal(d.wssi_impact.status,"not-depicted");assert.equal(d.lake_ice_reference.status,"unavailable");
  }finally{global.fetch=orig}
 });
 test("frontend keeps source identity, crawlable content and no fake geographic band",()=>{
@@ -103,7 +103,7 @@ test("frontend keeps source identity, crawlable content and no fake geographic b
  assert.match(html,/rel="canonical" href="https:\/\/chrisizworski.com\/lake-effect-snow\/"/);
  assert.match(html,/Built by <a href="https:\/\/chrisizworski.com\/chris-izworski\/"/);
  for(const id of ["hours","state","region","alerts","confidence","lake-reading","status","wssi-impact","lake-ice"])assert.match(html,new RegExp('id="'+id+'"'));
- assert.match(ui,/geolocation/);assert.match(ui,/history.replaceState/);
+ assert.match(ui,/geolocation/);assert.match(ui,/renderUpperAir/);assert.match(ui,/850-mb air/);assert.match(ui,/history.replaceState/);
  assert.doesNotMatch(html,/100% chance|exact snow band/i);
  new Function(ui);
 });
