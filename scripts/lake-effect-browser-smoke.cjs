@@ -8,6 +8,7 @@ function fixture(id){return {status:"ok",region:REGIONS.find(r=>r.id===id)||REGI
  alerts_status:"available",alerts:[{event:"Lake Effect Snow Warning",headline:"Snowbelt statement",lakeEffect:true,url:"https://api.weather.gov/alerts/mock"}],
  lake_temperature:{status:"available",fahrenheit:42,celsius:5.6,date:ts(-24)},
  verdict:{headline:"Forecast change likely later",impact:"Watch changing conditions",confidence:"medium",timing_window:"12–24 hours",first_12h:{overlap_hours:0,valid_hours:12}},
+ upper_air:{status:"available",issued_at:ts(-6),current:{valid_at:ts(0),temp_850_c:-10,wind_850_from_deg:310,wind_925_from_deg:320,shear_925_850_deg:10,delta_t_c:15,instability_screen:"favorable-contrast",shear_screen:"modest-turning"},forecast:[{valid_at:ts(0),temp_850_c:-10,wind_850_from_deg:310,shear_925_850_deg:10,delta_t_c:15}]},
  hours,sources:{nws_hourly:"https://api.weather.gov/points/46,-87",nws_alerts:"https://api.weather.gov/alerts/active"},
  limitations:["No exact band-position forecast."]};}
 const root=path.resolve(__dirname,"../public");
@@ -36,6 +37,8 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator("#confidence").innerText(),"MEDIUM");
   assert.equal(await page.locator("#timing-window").innerText(),"12–24 hours");
   assert.equal(await page.locator(".hour").count(),72);
+  assert.match(await page.locator("#upper-air-model").innerText(),/15°C/);
+  assert.match(await page.locator("#upper-air-model").innerText(),/850-mb air/);
   const d=await page.evaluate(()=>({body:document.documentElement.scrollWidth,viewport:innerWidth,timeline:document.querySelector(".hours").scrollWidth,container:document.querySelector(".hours").clientWidth}));
   assert.ok(d.body<=d.viewport+2,"Body horizontal overflow at "+width+"px: "+JSON.stringify(d));
   assert.ok(d.timeline>d.container,"Timeline must be internally scrollable");
