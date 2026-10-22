@@ -59,7 +59,8 @@ def sample(binary, cycle, fh):
                    or int(codes_get(message,"validityTime"))//100!=valid.hour):
                     raise ValueError("GRIB valid time does not match cycle and forecast hour")
                 for lake,(lat,lon) in LAKES.items():
-                    plat,plon,val,distance,index=codes_grib_find_nearest(message,lat,lon%360,npoints=1)[0]
+                    point=codes_grib_find_nearest(message,lat,lon%360,npoints=1)[0]
+                    plat,plon,val,distance,index=(point[k] for k in ("lat","lon","value","distance","index"))
                     if distance>45 or not math.isfinite(val):
                         raise ValueError("GFS offshore point too distant/missing for "+lake)
                     values[lake][field]=float(val)
