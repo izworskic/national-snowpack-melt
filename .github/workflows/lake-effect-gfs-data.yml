@@ -1,0 +1,42 @@
+name: NOAA GFS upper-air data
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "47 5,11,17,23 * * *"
+  pull_request:
+    paths:
+      - "scripts/build-lake-effect-gfs.py"
+      - ".github/workflows/lake-effect-gfs-data.yml"
+permissions:
+  contents: write
+concurrency:
+  group: lake-effect-gfs-data
+  cancel-in-progress: false
+jobs:
+  model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install GRIB2 decoder
+        run: pip install --disable-pip-version-check 'eccodes>=2.40,<3'
+      - name: Test live NOAA 850-mb GFS extraction without publication
+        if: github.event_name == 'pull_request'
+        run: python scripts/build-lake-effect-gfs.py --probe
+      - name: Extract and validate NOAA GFS forecast snapshots
+        if: github.event_name != 'pull_request'
+        run: python scripts/build-lake-effect-gfs.py --output out/upper-air.json
+      - name: Replace GitHub release data asset without Vercel rebuild
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view lake-effect-gfs >/dev/null 2>&1; then
+            gh release create lake-effect-gfs --target main --title 'Lake-effect GFS model feed' --notes 'Latest validated GFS 850/925 mb point model snapshots; this is not an official warning.' --prerelease --latest=false
+          fi
+          gh release upload lake-effect-gfs out/upper-air.json --clobber
