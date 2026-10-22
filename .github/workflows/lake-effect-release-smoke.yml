@@ -9,6 +9,8 @@ on:
       - "api/lake-effect.js"
       - "public/lake-effect-snow/**"
       - "public/assets/lake-effect.js"
+      - "public/assets/lake-effect-explainer.js"
+      - "tests/lake-effect-explainer.test.js"
       - "lib/lake-effect-upper-air.js"
       - "tests/lake-effect-upper-air.test.js"
   workflow_dispatch:
