@@ -9,6 +9,7 @@ const API=require("../api/lake-effect"),{allowed}=require("../lib/lake-effect");
   assert.equal(d.region.id,id);
   assert.equal(d.alerts_status,"available","NWS active alert feed unavailable");
   assert.ok(d.hours.length>=12,"Fewer than 12 valid hourly rows");
+  console.log(JSON.stringify({debug_region:id,forecast_updated:d.forecast_updated,hours:d.hours.length,first:d.hours.slice(0,12).map(h=>({at:h.at,wind_from:h.wind_from,degrees:h.wind_degrees,short:h.short_forecast})),verdict:d.verdict}));
   assert.equal(d.verdict.data_ok,true,"NWS forecast stale or incomplete");
   assert.equal(d.lake_temperature.status,"available","NOAA temperature missing or stale: "+JSON.stringify(d.lake_temperature));
   assert.equal(d.lake_temperature.scope,"lakewide surface average");
