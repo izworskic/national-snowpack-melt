@@ -1,6 +1,11 @@
 name: NOAA GFS upper-air data
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/build-lake-effect-gfs.py"
+      - ".github/workflows/lake-effect-gfs-data.yml"
   schedule:
     - cron: "47 5,11,17,23 * * *"
   pull_request:
