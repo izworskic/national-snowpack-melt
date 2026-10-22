@@ -48,6 +48,9 @@ function render(d){
   $("alerts").appendChild(child("p","Official alert feed unavailable. Verify with weather.gov before travel.")); 
  }else if(!d.alerts?.length){$("alerts").appendChild(child("p","No active winter alerts returned for this representative point. Other nearby counties can still be affected."))}
  else d.alerts.forEach(a=>{const article=child("article",null,"alert");article.appendChild(child("strong",a.event));article.appendChild(child("p",label(a.headline)));article.appendChild(child("p",a.lakeEffect?"Alert specifically mentions lake effect.":"Winter alert; lake-effect origin not established."));article.appendChild(link("Read the NWS alert",a.url));$("alerts").appendChild(article)});
+ const w=d.wssi_impact||{},ice=d.lake_ice_reference||{};
+ text("wssi-impact",w.status==="available"?"WPC "+label(w.impact)+": potential overall winter impacts at this forecast point. Issued "+formatDate(w.issue_time)+". Not a warning.":w.status==="not-depicted"?"No WSSI impact polygon depicted at this point. That does not prove safe travel or current guidance.":w.status==="stale"?"WPC WSSI layer returned outdated/unverifiable guidance. Consult the official WSSI map.":"WPC winter impacts are unavailable; no level inferred.");
+ text("lake-ice",ice.status==="available"?label(ice.category)+" at one sampled offshore point (chart "+formatDate(ice.date)+"). Not lakewide ice coverage.":ice.status==="stale"?"Latest mapped ice at this offshore reference point is stale ("+formatDate(ice.date)+"); not evidence of current ice-free water.":"Current ice analysis unavailable at the offshore reference point; no open-water assertion.");
  const t=d.lake_temperature||{};
  text("lake-name","Lake "+label(region.lake));
  text("lake-reading",t.status==="available"?"NOAA lakewide average: "+t.fahrenheit+"°F ("+t.celsius+"°C)":t.status==="stale"?"Last NOAA lake reading is stale.": "Current lake temperature is unavailable.");

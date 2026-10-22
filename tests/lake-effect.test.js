@@ -1,6 +1,6 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path");
-const M=require("../lib/lake-effect"), API=require("../api/lake-effect");
+const M=require("../lib/lake-effect"), API=require("../api/lake-effect"), C=require("../lib/lake-effect-context");
 const NOW=Date.parse("2026-12-14T12:00:00Z");
 const mkHour=(h,dir="NW",forecast="Lake Effect Snow Showers")=>({startTime:new Date(NOW+h*3600000).toISOString(),temperature:18,windDirection:dir,windSpeed:"12 mph",shortForecast:forecast,probabilityOfPrecipitation:{value:80}});
 test("catalog covers all five requested states and explicitly labels region scope",()=>{
@@ -84,6 +84,7 @@ test("endpoint integrates one NWS point, hourly, alerts and NOAA GLSEA; degraded
   if(url.includes("/points/"))body={properties:{forecastHourly:"https://api.weather.gov/gridpoints/MQT/20,20/forecast/hourly"}};
   else if(url.includes("/forecast/hourly"))body={properties:{updated:new Date(NOW).toISOString(),periods:Array.from({length:12},(_,i)=>mkHour(i))}};
   else if(url.includes("/alerts/active")){ok=false;body={}}
+  else if(url.includes("mapservices.weather.noaa.gov"))body={features:[]};
   else body="Year,Day,Sup,Mich,Huron,Erie,Ont\n2026,348,5,6,4,3,4\n";
   return {ok,status:ok?200:503,json:async()=>body,text:async()=>body};
  };
@@ -92,7 +93,7 @@ test("endpoint integrates one NWS point, hourly, alerts and NOAA GLSEA; degraded
   assert.equal(d.status,"ok");assert.equal(d.alerts_status,"unavailable");
   assert.equal(d.verdict.confidence,"low");assert.match(d.verdict.impact,/unavailable/i);
   assert.equal(d.lake_temperature.scope,"lakewide surface average");
-  assert.equal(calls.length,4);
+  assert.equal(calls.length,6);assert.equal(d.wssi_impact.status,"not-depicted");assert.equal(d.lake_ice_reference.status,"unavailable");
  }finally{global.fetch=orig}
 });
 test("frontend keeps source identity, crawlable content and no fake geographic band",()=>{
@@ -101,8 +102,26 @@ test("frontend keeps source identity, crawlable content and no fake geographic b
  const ui=fs.readFileSync(path.join(__dirname,"../public/assets/lake-effect.js"),"utf8");
  assert.match(html,/rel="canonical" href="https:\/\/chrisizworski.com\/lake-effect-snow\/"/);
  assert.match(html,/Built by <a href="https:\/\/chrisizworski.com\/chris-izworski\/"/);
- for(const id of ["hours","state","region","alerts","confidence","lake-reading","status"])assert.match(html,new RegExp('id="'+id+'"'));
+ for(const id of ["hours","state","region","alerts","confidence","lake-reading","status","wssi-impact","lake-ice"])assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(ui,/geolocation/);assert.match(ui,/history.replaceState/);
  assert.doesNotMatch(html,/100% chance|exact snow band/i);
  new Function(ui);
+});
+
+test("WSSI is a dated impact field, not a lake-effect alert",()=>{
+ const q=C.wssiUrl(46.54,-87.4);assert.match(q,/wpc_wssi\/MapServer\/4\/query/);
+ assert.match(q,/returnGeometry=false/);
+ assert.equal(C.wssiAtPoint({features:[]},NOW).status,"not-depicted");
+ const f={features:[{attributes:{impact:"MAJOR",issue_time:new Date(NOW-3600000).toISOString(),start_time:new Date(NOW).toISOString(),end_time:new Date(NOW+24*3600000).toISOString()}}]};
+ const r=C.wssiAtPoint(f,NOW);assert.equal(r.status,"available");assert.equal(r.impact,"MAJOR");assert.match(r.reason,/NOT an official warning/);
+ f.features[0].attributes.issue_time=new Date(NOW-48*3600000).toISOString();assert.equal(C.wssiAtPoint(f,NOW).status,"stale");
+});
+test("USNIC ice chart categorizes only a reference point, and old autumn product fails closed",()=>{
+ const f={features:[{attributes:{ct:"00",idp_filedate:NOW-24*3600000}}]};
+ const r=C.iceAtPoint(f,"Superior",NOW);assert.equal(r.status,"available");assert.equal(r.category,"ice-free water");
+ assert.equal(r.scope,"single reference water point");
+ assert.equal(C.iceAtPoint({features:[]},"Superior",NOW).status,"unavailable");
+ assert.equal(C.iceAtPoint({features:[{attributes:{ct:"00",idp_filedate:NOW-120*86400000}}]},"Superior",NOW).status,"stale");
+ assert.equal(C.iceAtPoint({features:[{attributes:{ct:"99",idp_filedate:NOW}}]},"Superior",NOW).status,"unavailable");
+ assert.match(C.iceUrl("Superior"),/usnic_greatlakes_ice_chart\/MapServer\/0\/query/);
 });
