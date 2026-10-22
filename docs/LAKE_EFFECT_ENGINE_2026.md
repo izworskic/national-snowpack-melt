@@ -41,3 +41,9 @@ NWS office-by-office exposure sector validation, historical-event hindcasts, cre
 
 ### October 21 source-format correction
 Official NOAA GLSEA direct raw feed: https://apps.glerl.noaa.gov/coastwatch/ftp/glsea/avgtemps/glsea-temps_1024_3.dat . A browser/web fetch returned dated whitespace-delimited rows with day-of-year and °C fields. The live Vercel preview remains protected; deployed API egress and date freshness are not yet confirmed. Code fails open *for page readability*, but fails closed for any asserted temperature when NOAA retrieval is blocked.
+
+## 2026-10-22 observational and impact context (v2)
+- Added official WPC WSSI **overall** Days 1–3 point intersection via NWS CloudGIS layer `outlooks/wpc_wssi/MapServer/4`. Use issue/start/end timestamps and strict age checks. Missing polygon means *not depicted at this checkpoint*, NOT no winter risk; impact bands are never a warning or lake-effect track. Source: https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi/MapServer/4 .
+- Added official USNIC total ice concentration **single offshore reference point**, `obs/usnic_greatlakes_ice_chart/MapServer/0`. Date and SIGRID-3 class `ct` must be known; absence does not equal open water, stale (over 72h) not presented as current. Reference point never translates to whole-lake percentages. Source: https://mapservices.weather.noaa.gov/vector/rest/services/obs/usnic_greatlakes_ice_chart/MapServer/0 .
+- NO 850-mb instability derived: neither NWS point hourly wind nor land surface temperature yields 850-mb temperature. Do not present fake 13°C lake-to-850-mb delta. WSSI and ice fields remain independent interpretive context and cannot override an official NWS warning/verdict.
+- Both data calls per region are optional and bounded at 5.5s with fail-closed parse; no new cron, caching backend, paid API, or exact-band map.
