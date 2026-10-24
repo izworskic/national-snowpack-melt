@@ -20,7 +20,7 @@ test("window brief relies on NWS official forecast rather than GFS temperature a
  assert.match(js,/v\.data_ok!==false/);assert.match(js,/coverage/);
  assert.match(js,/not a prediction of snow accumulation or band location/);
  assert.match(js,/model charts cannot fill missing official forecast hours/);
- assert.match(js,/No NWS snow in/);
+ assert.match(js,/No NWS snow signal/);
  assert.doesNotMatch(js,/snow_inches|snowfall_probability|GO_NOW/);
  new Function(js);
 });
