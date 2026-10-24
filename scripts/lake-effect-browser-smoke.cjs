@@ -20,7 +20,7 @@ const server=http.createServer((req,res)=>{
   if(u.searchParams.get("region")==="ny-buffalo"){res.statusCode=503;return res.end(JSON.stringify({status:"unavailable"}));}
   return res.end(JSON.stringify(fixture(u.searchParams.get("region"))));
  }
- const file=u.pathname==="/assets/lake-effect.js"?"assets/lake-effect.js":u.pathname==="/assets/lake-effect-explainer.js"?"assets/lake-effect-explainer.js":"lake-effect-snow/index.html";
+ const file=u.pathname==="/assets/lake-effect.js"?"assets/lake-effect.js":u.pathname==="/assets/lake-effect-explainer.js"?"assets/lake-effect-explainer.js":u.pathname==="/assets/lake-effect-radar.js"?"assets/lake-effect-radar.js":"lake-effect-snow/index.html";
  res.setHeader("Content-Type",file.endsWith(".js")?"text/javascript":"text/html");
  fs.createReadStream(path.join(root,file)).pipe(res);
 });
@@ -32,6 +32,16 @@ const server=http.createServer((req,res)=>{
   const context=await browser.newContext({viewport:{width,height:800},permissions:[]});
   const page=await context.newPage(),errors=[];
   page.on("pageerror",e=>errors.push(e.message));
+  await page.route("https://mapservices.weather.noaa.gov/**",async route=>{
+   const u=new URL(route.request().url()),isQuery=u.pathname.endsWith("/query");
+   if(isQuery){
+    const now=Date.now(),isStale=u.searchParams.get("geometry")==="-84.67,45.03";
+    const stamps=Array.from({length:11},(_,i)=>now-(isStale?480:110-i*10)*60000);
+    await route.fulfill({status:200,contentType:"application/json",headers:{"access-control-allow-origin":"*"},body:JSON.stringify({features:stamps.map(t=>({attributes:{idp_validtime:t,idp_filedate:t+30000}}))})});
+   }else if(u.pathname.endsWith("/exportImage")){
+    await route.fulfill({status:200,contentType:"image/png",headers:{"access-control-allow-origin":"*"},body:Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==","base64")});
+   }else await route.continue();
+  });
   await page.goto("http://127.0.0.1:"+server.address().port+"/lake-effect-snow/?region=mi-marquette",{waitUntil:"networkidle"});
   await page.locator("#headline").waitFor({state:"visible"});
   assert.equal(await page.locator("#confidence").innerText(),"MEDIUM");
@@ -69,6 +79,19 @@ const server=http.createServer((req,res)=>{
   assert.match(await page.locator("#story-model-note").innerText(),/not interpolated hourly/);
   assert.match(await page.locator("#upper-air-model").innerText(),/15°C/);
   assert.match(await page.locator("#upper-air-model").innerText(),/850-mb air/);
+  await page.locator("#radar-load").click();
+  await page.waitForFunction(()=>document.getElementById("radar-time").max!=="0",{timeout:18000});
+  assert.match(await page.locator("#radar-status").innerText(),/verified MRMS observations/);
+  assert.match(await page.locator("#radar-frame-time").innerText(),/Radar observation:/);
+  assert.ok(await page.locator("#radar-map .leaflet-map-pane").count()>0,"Radar should have an interactive Leaflet/CARTO map");
+  assert.equal(await page.locator("#radar-play").isDisabled(),false);
+  await page.locator("#radar-play").click();
+  assert.equal(await page.locator("#radar-play").innerText(),"Pause radar");
+  await page.locator("#radar-play").click();
+  await page.locator("#radar-time").fill("1");
+  await page.locator("#radar-latest").click();
+  assert.match(await page.locator("#radar-frame-time").innerText(),/of \d+ confirmed frames/);
+  assert.match(await page.locator("#radar-directions").getAttribute("href"),/google\.com\/maps/);
   const d=await page.evaluate(()=>({body:document.documentElement.scrollWidth,viewport:innerWidth,timeline:document.querySelector(".hours").scrollWidth,container:document.querySelector(".hours").clientWidth}));
   assert.ok(d.body<=d.viewport+2,"Body horizontal overflow at "+width+"px: "+JSON.stringify(d));
   assert.ok(d.timeline>d.container,"Timeline must be internally scrollable");
@@ -77,6 +100,9 @@ const server=http.createServer((req,res)=>{
   await page.locator("#check").click();
   await page.waitForFunction(()=>new URL(location.href).searchParams.get("region")==="ny-oswego");
   assert.equal((await page.locator("#lake-name").innerText()).toLowerCase(),"lake ontario");
+  await page.waitForFunction(()=>document.getElementById("radar-directions").href.includes("43.45"));
+  assert.match(await page.locator("#radar-directions").getAttribute("href"),/43\.45/);
+  assert.match(await page.locator("#radar-frame-time").innerText(),/Radar observation:/);
   assert.equal(new URL(page.url()).searchParams.has("window"),false,"Change region should clear previous deep-linked window");
   assert.ok(await page.locator("#story-contrast circle").count()>=8);
   assert.match(await page.locator("#story-model").innerText(),/GFS offshore snapshot/);
@@ -84,6 +110,8 @@ const server=http.createServer((req,res)=>{
   await page.waitForFunction(()=>new URL(location.href).searchParams.get("region")==="mi-gaylord");
   assert.equal(await page.locator("#story-contrast circle").count(),0,"Stale model must never leave old plotted values");
   assert.match(await page.locator("#story-model-note").innerText(),/unavailable or stale/);
+  await page.waitForFunction(()=>document.getElementById("radar-status").textContent.includes("No sufficiently recent"),{timeout:15000});
+  assert.equal(await page.locator("#radar-play").isDisabled(),true,"Stale radar must not play old frames");
   await page.locator("#region").selectOption("mi-traverse");await page.locator("#check").click();
   await page.waitForFunction(()=>new URL(location.href).searchParams.get("region")==="mi-traverse");
   assert.match(await page.locator("#story-decision-title").innerText(),/fresh check/);
