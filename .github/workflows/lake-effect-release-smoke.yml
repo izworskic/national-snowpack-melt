@@ -10,6 +10,8 @@ on:
       - "public/lake-effect-snow/**"
       - "public/assets/lake-effect.js"
       - "public/assets/lake-effect-explainer.js"
+      - "public/assets/lake-effect-radar.js"
+      - "tests/lake-effect-radar.test.js"
       - "tests/lake-effect-explainer.test.js"
       - "lib/lake-effect-upper-air.js"
       - "tests/lake-effect-upper-air.test.js"
