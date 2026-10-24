@@ -32,6 +32,16 @@ const server=http.createServer((req,res)=>{
   const context=await browser.newContext({viewport:{width,height:800},permissions:[]});
   const page=await context.newPage(),errors=[];
   page.on("pageerror",e=>errors.push(e.message));
+  const tileRequests=[];
+  const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==","base64");
+  await page.route("**/api/carto-basemap-config",async route=>{
+   await route.fulfill({status:width===390?200:503,contentType:"application/json",body:width===390?JSON.stringify({provider:"CARTO",key:"carto-public-browser-test-key-12345"}):JSON.stringify({error:"No public key"})});
+  });
+  await page.route(/https:\/\/[a-d]\.basemaps\.cartocdn\.com\/.*/,async route=>{
+   tileRequests.push(route.request().url());
+   await route.fulfill({status:200,contentType:"image/png",body:png});
+  });
+  await page.route("https://tile.openstreetmap.org/**",async route=>{await route.fulfill({status:200,contentType:"image/png",body:png})});
   await page.route("https://mapservices.weather.noaa.gov/**",async route=>{
    const u=new URL(route.request().url()),isQuery=u.pathname.endsWith("/query");
    if(isQuery){
@@ -84,6 +94,14 @@ const server=http.createServer((req,res)=>{
   assert.match(await page.locator("#radar-status").innerText(),/verified MRMS observations/);
   assert.match(await page.locator("#radar-frame-time").innerText(),/Radar observation:/);
   assert.ok(await page.locator("#radar-map .leaflet-map-pane").count()>0,"Radar should have an interactive Leaflet/CARTO map");
+  if(width===390){
+   await page.waitForFunction(()=>document.getElementById("radar-basemap-status").textContent.includes("CARTO Positron"),{timeout:10000});
+   assert.ok(tileRequests.length>0,"CARTO keyed tile images must be requested");
+   assert.ok(tileRequests.every(url=>new URL(url).searchParams.get("key")==="carto-public-browser-test-key-12345"),"Never request keyless CARTO tiles");
+  }else{
+   await page.waitForFunction(()=>document.getElementById("radar-basemap-status").textContent.includes("OpenStreetMap"),{timeout:10000});
+   assert.equal(tileRequests.length,0,"No CARTO tile requests when public config is missing");
+  }
   assert.equal(await page.locator("#radar-play").isDisabled(),false);
   await page.locator("#radar-play").click();
   assert.equal(await page.locator("#radar-play").innerText(),"Pause radar");
