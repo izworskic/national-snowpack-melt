@@ -90,6 +90,7 @@ function render(d){
  a.href=d.sources?.nws_alerts&&d.sources.nws_alerts.startsWith("https://api.weather.gov/")?d.sources.nws_alerts:"https://www.weather.gov/";
  hours(d.hours||[]);
  if(window.LakeEffectExplainer?.render)window.LakeEffectExplainer.render(d);
+ if(window.LakeEffectRadar?.render)window.LakeEffectRadar.render(d);
  $("dashboard").hidden=false;
 }
 async function selectRegion(id){
