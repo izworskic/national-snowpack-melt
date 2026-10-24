@@ -57,7 +57,7 @@ function radarUrl(ms){
  const b=rasterBox(),q=new URLSearchParams();
  q.set("bbox",b.bbox.join(","));q.set("bboxSR","3857");q.set("imageSR","3857");
  q.set("size",b.size.join(","));q.set("format","png32");q.set("transparent","true");
- q.set("interpolation","+RSP_NearestNeighbor");q.set("time",String(ms));q.set("f","image");
+ q.set("interpolation","RSP_NearestNeighbor");q.set("time",String(ms));q.set("f","image");
  return {url:ROOT+"/exportImage?"+q.toString(),bounds:b.bounds,key:b.bbox.join(",")+"|"+b.size.join(",")};
 }
 function draw(){
@@ -167,13 +167,14 @@ async function initialize(){
  loaded=true;
  setStatus("Loading the CARTO map and NOAA radar…");
  try{await ensureLeaflet();makeMap();map.invalidateSize();await fetchFrames()}
- catch{setStatus("Radar map unavailable. Open the official NWS radar; the other forecast tools still work.",true)}
+ catch{loaded=false;loadPromise=null;setStatus("Radar map unavailable. Open the official NWS radar; the other forecast tools still work.",true)}
 }
 function render(d){
  const region=d?.region;if(!geo(region))return;
  const changed=renderedRegion!==region.id;renderedRegion=region.id;
+ if(changed){++token;reset()}
  setRegion(region);
- if(changed){++token;reset();if(loaded)fetchFrames();else setStatus("Radar loads when this section comes into view.")}
+ if(changed){if(loaded)fetchFrames();else setStatus("Radar loads when this section comes into view.")}
  if(!observer&&"IntersectionObserver" in global){
   observer=new IntersectionObserver(entries=>{
    if(entries.some(e=>e.isIntersecting)){
