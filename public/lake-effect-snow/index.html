@@ -70,6 +70,25 @@ small,.small{color:var(--muted);font-size:.81rem}.alert{border-left:4px solid #a
 .story-share-status{color:#4d6471}
 @media(max-width:760px){.story-share{align-items:flex-start}.story-decision{padding:12px}}
 
+
+/* A single lazy radar element inside the existing hourly story; no new section/ad break. */
+.radar-explorer{margin:18px 0 21px;padding:17px;border:1px solid #c5dbe2;border-radius:11px;background:#f7fafb}
+.radar-explorer h4{font:normal 1.3rem/1.25 Georgia,serif;margin:0 0 5px;color:#174d64}
+.radar-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0}
+.radar-toolbar button{min-height:40px;font-size:.84rem;padding:8px 13px}
+.radar-toolbar button[disabled]{opacity:.58;cursor:not-allowed}
+.radar-toolbar .radar-secondary{background:#e5eef2;color:#17465b;border:1px solid #b8cdd6}
+.radar-frame{height:335px;max-height:62vh;position:relative;border:1px solid #cbdce3;border-radius:9px;overflow:hidden;background:#e5edf1}
+.radar-frame .radar-map{height:100%;width:100%;z-index:0}
+.radar-status{font-size:.83rem;color:#456474;margin:9px 0;min-height:1.5em}
+.radar-status[role=alert]{color:#93391f}
+.radar-clock{font-weight:730;font-size:.87rem;color:#24546a;margin:6px 0}
+.radar-time{width:100%;accent-color:#0c7283;min-height:30px;display:block}
+.radar-notes{font-size:.78rem;color:#536e78;margin:7px 0}
+.radar-foot{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.78rem;margin-top:10px}
+.radar-explorer a{font-weight:650}
+@media(max-width:760px){.radar-explorer{padding:12px}.radar-frame{height:320px;max-height:53vh}.radar-toolbar{gap:6px}.radar-toolbar button{padding:8px 10px;font-size:.8rem}}
+
 footer{border-top:1px solid var(--line);padding:24px 0;color:#526873;font-size:.85rem}
 @media(max-width:760px){.control,.two,.three,.guide{grid-template-columns:1fr}.panel{padding:17px}.hero{padding:32px 0}.head .shell{display:block}.head nav{margin-top:6px}.hero h1{font-size:2.25rem}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
@@ -103,7 +122,25 @@ footer{border-top:1px solid var(--line);padding:24px 0;color:#526873;font-size:.
 </div>
 <div class="story-periods" id="story-periods" role="group" aria-label="Choose a forecast time window"></div>
 <div class="story-share"><a id="story-view-link" href="#forecast-explainer">Open this forecast window</a><button id="story-copy" type="button">Copy window link</button><span id="story-copy-status" class="story-share-status" role="status" aria-live="polite"></span></div>
- <div class="story-interpretation" aria-live="polite" aria-atomic="true">
+ <div class="radar-explorer" id="radar-explorer" aria-labelledby="radar-heading">
+ <h4 id="radar-heading">Radar now: watch precipitation echoes</h4>
+ <p class="small">The map follows your selected snowbelt. NOAA/NWS MRMS radar shows observed precipitation echoes, not a forecast snowband or confirmation that snow is reaching the ground.</p>
+ <div class="radar-toolbar">
+  <button id="radar-load" class="radar-secondary" type="button">Load radar</button>
+  <button id="radar-refresh" class="radar-secondary" type="button">Check latest frames</button>
+  <button id="radar-play" type="button" disabled>Play radar</button>
+  <button id="radar-latest" class="radar-secondary" type="button" disabled>Latest image</button>
+ </div>
+ <div id="radar-status" class="radar-status" role="status" aria-live="polite">Radar loads when the map comes into view.</div>
+ <div class="radar-frame"><div id="radar-map" class="radar-map" role="region" aria-label="Interactive map of NOAA NWS radar echoes for the selected snowbelt"></div></div>
+ <p id="radar-frame-time" class="radar-clock">No verified frame</p>
+ <label for="radar-time">Explore actual available radar observation times</label>
+ <input id="radar-time" class="radar-time" type="range" min="0" max="0" step="1" value="0" disabled aria-label="Select verified radar observation time">
+ <p class="radar-notes">Up to the previous four hours, only where verified NOAA frames exist. A timestamp is an observation time, not an arrival forecast. Radar reflectivity (dBZ) does not by itself distinguish rain from snow. No radar-motion extrapolation is performed.</p>
+ <div class="radar-foot"><a href="https://radar.weather.gov/" target="_blank" rel="noopener">Official NWS radar viewer</a><a id="radar-directions" href="https://www.google.com/maps/" target="_blank" rel="noopener">Open selected checkpoint in Google Maps</a><a href="https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/radar_base_reflectivity_time/ImageServer" target="_blank" rel="noopener">NOAA MRMS radar service details</a></div>
+</div>
+
+<div class="story-interpretation" aria-live="polite" aria-atomic="true">
   <h4 id="story-title">Assessing the forecast…</h4>
   <div id="story-what"></div>
  </div>
@@ -143,5 +180,6 @@ footer{border-top:1px solid var(--line);padding:24px 0;color:#526873;font-size:.
 <footer><div class="shell">Built by <a href="https://chrisizworski.com/chris-izworski/">Chris Izworski</a> · NOAA/NWS data are government sources; interpretation is independent and does not replace official alerts or local road authorities.</div></footer>
 <script src="/assets/lake-effect.js?v=20261022-4" defer></script>
 <script src="/assets/lake-effect-explainer.js?v=20261024-1" defer></script>
+<script src="/assets/lake-effect-radar.js?v=20261024-1" defer></script>
 </body>
 </html>
