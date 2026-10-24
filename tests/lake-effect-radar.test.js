@@ -51,3 +51,19 @@ test("playback admits only fresh verified NOAA timestamps, skips duplicates and 
  const many=Array.from({length:30},(_,i)=>item(now-(29-i)*5*60000));
  assert.ok(radar.parseFrames({features:many},now).length<=13);
 });
+
+test("CARTO browser key must come from the site configuration and every tile must be keyed",()=>{
+ const radar=hook();
+ const template=radar.publicTileUrl("carto-public-basemap-demo-key-12345");
+ assert.match(template,/^https:\/\/\{s\}\.basemaps\.cartocdn\.com\/light_all\/\{z\}\/\{x\}\/\{y\}\.png\?key=/);
+ assert.equal(new URL(template.replace("{s}","a").replace("{z}","5").replace("{x}","9").replace("{y}","12")).searchParams.get("key"),"carto-public-basemap-demo-key-12345");
+ assert.equal(radar.publicTileUrl(""),null);
+ assert.equal(radar.publicTileUrl("bad?query"),null);
+ assert.equal(radar.publicTileUrl("private key"),null);
+ assert.equal(radar.publicTileUrl(undefined),null);
+ assert.match(js,/fetch\("\/api\/carto-basemap-config"/);
+ assert.match(js,/OpenStreetMap street map/);
+ assert.match(html,/id="radar-basemap-status"/);
+ assert.match(html,/lake-effect-radar\.js\?v=20261024-2/);
+ assert.doesNotMatch(js,/tileLayer\("https:\/\/basemaps\.cartocdn\.com\/light_all/);
+});
