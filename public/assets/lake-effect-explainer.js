@@ -226,7 +226,7 @@ function paint(){
  });
  plot("story-contrast","delta_t_c",13);plot("story-shear","shear_925_850_deg");
  const hasModel=modelSamples().length>0;
- $("story-model-note").textContent=hasModel?"Vertical stems show discrete offshore GFS snapshots—not interpolated hours. Water temperature is one dated NOAA lakewide analysis held constant across these forecast leads, NOT a future lake-water forecast. The 13°C guideline is not a snow probability.":"Model charts are unavailable or stale. The NWS hourly evidence above remains available independently.";
+ $("story-model-note").textContent=hasModel?"Vertical stems show discrete offshore GFS snapshots, not interpolated hourly values. Water temperature is one dated NOAA lakewide analysis held constant across these forecast leads, NOT a future lake-water forecast. The 13°C guideline is not a snow probability.":"Model charts are unavailable or stale. The NWS hourly evidence above remains available independently.";
 }
 function render(incoming){
  data=incoming;selectedWindow=0;selectedHour=null;selectedModel=null;
