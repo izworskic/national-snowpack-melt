@@ -7,9 +7,9 @@ const hours=Array.from({length:72},(_,i)=>({at:ts(i),temperature_f:26,wind_from:
 function fixture(id){return {status:"ok",region:REGIONS.find(r=>r.id===id)||REGIONS[0],generated_at:ts(0),forecast_updated:ts(0),
  alerts_status:"available",alerts:[{event:"Lake Effect Snow Warning",headline:"Snowbelt statement",lakeEffect:true,url:"https://api.weather.gov/alerts/mock"}],
  lake_temperature:{status:"available",fahrenheit:42,celsius:5.6,date:ts(-24)},
- verdict:{headline:"Forecast change likely later",impact:"Watch changing conditions",confidence:"medium",timing_window:"12–24 hours",first_12h:{overlap_hours:0,valid_hours:12}},
+ verdict:{headline:"Forecast change likely later",impact:"Watch changing conditions",confidence:"medium",timing_window:"12–24 hours",first_12h:{overlap_hours:0,valid_hours:12},official_warning:id==="ny-tug-hill",data_ok:id!=="mi-traverse"},
  upper_air:{status:id==="mi-gaylord"?"stale":"available",issued_at:ts(-6),current:{valid_at:ts(0),temp_850_c:-10,wind_850_from_deg:310,wind_925_from_deg:320,shear_925_850_deg:10,delta_t_c:15,instability_screen:"favorable-contrast",shear_screen:"modest-turning"},forecast:[0,6,12,18,24,36,48,60,72].map((h,i)=>({valid_at:ts(h),temp_850_c:-10+i,wind_850_from_deg:310-i*3,wind_925_from_deg:320,shear_925_850_deg:10+i*4,delta_t_c:15-i}))},
- hours,sources:{nws_hourly:"https://api.weather.gov/points/46,-87",nws_alerts:"https://api.weather.gov/alerts/active"},
+ hours:id==="mi-traverse"?hours.slice(0,3):hours,sources:{nws_hourly:"https://api.weather.gov/points/46,-87",nws_alerts:"https://api.weather.gov/alerts/active"},
  limitations:["No exact band-position forecast."]};}
 const root=path.resolve(__dirname,"../public");
 const server=http.createServer((req,res)=>{
@@ -39,12 +39,25 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator(".hour").count(),72);
   assert.equal(await page.locator(".story-period").count(),4);
   assert.equal(await page.locator(".story-hour").count(),72);
+  assert.match(await page.locator("#story-decision-title").innerText(),/First snow-and-wind overlap: 12–24h/);
+  assert.equal(await page.locator(".story-period[aria-pressed=true]").count(),1);
+  assert.match(await page.locator("#story-decision-copy").innerText(),/not a prediction/);
+  assert.match(await page.locator("#story-next-check").innerText(),/NWS forecast/);
   assert.ok(await page.locator("#story-contrast circle").count()>=8);
   assert.ok(await page.locator("#story-shear circle").count()>=8);
   assert.match(await page.locator("#story-title").innerText(),/wind|snow/i);
   const initial=await page.locator("#story-range").innerText();
   await page.locator(".story-period").nth(2).click();
   assert.equal(await page.locator(".story-period[aria-pressed=true]").count(),1);
+  assert.equal(new URL(page.url()).searchParams.get("window"),"24-48h");
+  const deepLink=await page.locator("#story-view-link").getAttribute("href");
+  assert.match(deepLink,/region=mi-marquette/);assert.match(deepLink,/window=24-48h/);
+  await page.locator("#story-copy").click();
+  await page.waitForFunction(()=>document.getElementById("story-copy-status").textContent.length>0);
+  await page.goto(deepLink,{waitUntil:"networkidle"});
+  await page.locator("#story-decision-title").waitFor({state:"visible"});
+  assert.equal(await page.locator(".story-period").nth(2).getAttribute("aria-pressed"),"true");
+  assert.match(await page.locator("#story-next-check").innerText(),/NWS forecast/);
   assert.notEqual(await page.locator("#story-range").innerText(),initial);
   await page.locator(".story-hour").nth(20).click();
   assert.match(await page.locator("#story-model").innerText(),/Selected NWS hour/);
@@ -64,12 +77,21 @@ const server=http.createServer((req,res)=>{
   await page.locator("#check").click();
   await page.waitForFunction(()=>new URL(location.href).searchParams.get("region")==="ny-oswego");
   assert.equal((await page.locator("#lake-name").innerText()).toLowerCase(),"lake ontario");
+  assert.equal(new URL(page.url()).searchParams.has("window"),false,"Change region should clear previous deep-linked window");
   assert.ok(await page.locator("#story-contrast circle").count()>=8);
   assert.match(await page.locator("#story-model").innerText(),/GFS offshore snapshot/);
   await page.locator("#state").selectOption("MI");await page.locator("#region").selectOption("mi-gaylord");await page.locator("#check").click();
   await page.waitForFunction(()=>new URL(location.href).searchParams.get("region")==="mi-gaylord");
   assert.equal(await page.locator("#story-contrast circle").count(),0,"Stale model must never leave old plotted values");
   assert.match(await page.locator("#story-model-note").innerText(),/unavailable or stale/);
+  await page.locator("#region").selectOption("mi-traverse");await page.locator("#check").click();
+  await page.waitForFunction(()=>new URL(location.href).searchParams.get("region")==="mi-traverse");
+  assert.match(await page.locator("#story-decision-title").innerText(),/fresh check/);
+  assert.match(await page.locator("#story-decision-copy").innerText(),/incomplete or stale/);
+  await page.locator("#state").selectOption("NY");await page.locator("#region").selectOption("ny-tug-hill");await page.locator("#check").click();
+  await page.waitForFunction(()=>new URL(location.href).searchParams.get("region")==="ny-tug-hill");
+  assert.match(await page.locator("#story-decision-title").innerText(),/Active NWS warning/);
+  assert.match(await page.locator("#story-next-check").innerText(),/Read the original NWS warning/);
   await page.locator("#locate").click();
   await page.locator("#state").selectOption("NY");await page.locator("#region").selectOption("ny-buffalo");
   await page.locator("#check").click();
