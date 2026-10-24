@@ -1,5 +1,5 @@
 /* NWS MRMS live reflectivity: observation-only radar for the selected snowbelt.
- * Carto basemap + Leaflet image overlay, lazily loaded; no API key, radar analysis,
+ * Keyed CARTO basemap with OSM fallback + Leaflet image overlay; no private key, radar analysis,
  * inferred snow type, forecast band path, paid services or site-side cron. */
 (function(global){
 "use strict";
@@ -11,6 +11,7 @@ const $=id=>document.getElementById(id);
 const safe=(v,min,max)=>typeof v==="number"&&Number.isFinite(v)&&v>=min&&v<=max;
 let current=null,frames=[],index=0,map=null,pin=null,overlay=null,observer=null,token=0,playTimer=null,loadPromise=null;
 let startPromise=null,lastBoundsKey="",lastQuery=null,loaded=false,renderedRegion=null;
+let baseLayer=null,cartoLayer=null,cartoFailed=false;
 const el=(tag,text,cls)=>{const x=document.createElement(tag);if(text!=null)x.textContent=text;if(cls)x.className=cls;return x};
 const stamp=ms=>new Intl.DateTimeFormat(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}).format(new Date(ms));
 const age=ms=>Math.max(0,Math.round((Date.now()-ms)/MIN));
@@ -75,15 +76,64 @@ function draw(){
  }
  lastBoundsKey=frame.key;
 }
+const OSM="https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const OSM_ATTR='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Radar &copy; NOAA/NWS';
+const CARTO_ATTR='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a> | Radar &copy; NOAA/NWS';
+function publicTileUrl(key){
+ // CARTO basemap keys are explicitly public browser tokens, never server credentials.
+ if(typeof key!=="string"||!/^[A-Za-z0-9._~+-]{10,512}$/.test(key))return null;
+ return "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png?key="+encodeURIComponent(key);
+}
+function baseMessage(message){
+ const e=$("radar-basemap-status");if(e)e.textContent=message;
+}
+function fallBackBasemap(){
+ if(!map)return;
+ cartoFailed=true;
+ if(cartoLayer){map.removeLayer(cartoLayer);cartoLayer=null}
+ if(!baseLayer){baseLayer=global.L.tileLayer(OSM,{maxZoom:19,attribution:OSM_ATTR}).addTo(map)}
+ baseMessage("OpenStreetMap street map · CARTO tiles unavailable");
+}
+async function loadCartoBasemap(){
+ // The site's existing serverless endpoint reads CARTO_BASEMAP_PUBLIC_KEY in
+ // the chrisizworski-com Vercel environment. It returns ONLY a browser key.
+ // The radar JS is hosted by another project, so never read source env vars.
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),3500);
+ try{
+  const response=await fetch("/api/carto-basemap-config",{signal:controller.signal,headers:{accept:"application/json"}});
+  if(!response.ok)throw Error("No CARTO browser config");
+  const data=await response.json();
+  const url=data?.provider==="CARTO"?publicTileUrl(data.key):null;
+  if(!url)throw Error("CARTO browser key missing or invalid");
+  if(!map||cartoFailed)return;
+  const L=global.L;
+  let switched=false;
+  const layer=L.tileLayer(url,{maxZoom:19,subdomains:"abcd",attribution:CARTO_ATTR});
+  cartoLayer=layer;
+  layer.on("tileload",()=>{
+   if(!switched&&!cartoFailed&&map&&cartoLayer===layer){
+    switched=true;
+    if(baseLayer){map.removeLayer(baseLayer);baseLayer=null}
+    baseMessage("CARTO Positron basemap · verified keyed tiles");
+   }
+  });
+  layer.on("tileerror",()=>fallBackBasemap());
+  layer.addTo(map);
+ }catch{
+  baseMessage("OpenStreetMap street map · CARTO key unavailable");
+ }finally{clearTimeout(timer)}
+}
+
 function makeMap(){
  if(map)return map;
  if(!global.L?.map)throw Error("Map library unavailable");
  const L=global.L;
  map=L.map("radar-map",{center:[current.lat,current.lon],zoom:7,minZoom:4,maxZoom:11,scrollWheelZoom:false,zoomControl:true});
- L.tileLayer("https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",{
-  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a> | Radar &copy; NOAA/NWS',
-  maxZoom:19,subdomains:"abcd"
- }).addTo(map);
+ // Never request CARTO without ?key=: new CARTO tiles render a visible watermark.
+ // OpenStreetMap renders immediately, then swaps to keyed CARTO after tileload.
+ baseLayer=L.tileLayer(OSM,{maxZoom:19,attribution:OSM_ATTR}).addTo(map);
+ baseMessage("Loading your configured CARTO basemap…");
+ loadCartoBasemap();
  pin=L.marker([current.lat,current.lon]).addTo(map);
  pin.bindPopup(el("strong",current.name||"Selected snowbelt checkpoint"));
  map.on("movestart",()=>stop());
@@ -194,5 +244,5 @@ function wire(){
  document.addEventListener("visibilitychange",()=>{if(document.hidden)stop()});
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",wire);else wire();
-global.LakeEffectRadar={render,parseFrames,queryUrl};
+global.LakeEffectRadar={render,parseFrames,queryUrl,publicTileUrl};
 })(window);
