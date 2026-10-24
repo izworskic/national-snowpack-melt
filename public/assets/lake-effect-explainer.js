@@ -4,7 +4,7 @@
 "use strict";
 const $=id=>document.getElementById(id);
 const SVG="http://www.w3.org/2000/svg",HOUR=3600000;
-const RANGES=[{from:0,to:12,name:"Next 12h"},{from:12,to:24,name:"12–24h"},{from:24,to:48,name:"24–48h"},{from:48,to:72,name:"48–72h"}];
+const RANGES=[{from:0,to:12,name:"Next 12h",key:"next-12h"},{from:12,to:24,name:"12–24h",key:"12-24h"},{from:24,to:48,name:"24–48h",key:"24-48h"},{from:48,to:72,name:"48–72h",key:"48-72h"}];
 let data=null,selectedWindow=0,selectedHour=null,selectedModel=null;
 const fmt=iso=>new Intl.DateTimeFormat(undefined,{weekday:"short",hour:"numeric",month:"short",day:"numeric"}).format(new Date(iso));
 const escapeNum=n=>Number.isFinite(n)?String(Math.round(n*10)/10):"Unavailable";
@@ -29,6 +29,82 @@ function nearestModel(when){
  for(const s of candidates){const n=Math.abs(ms(s.valid_at)-when);if(n<diff){diff=n;best=s}}
  return diff<=6*HOUR?{row:best,diffHours:Math.round(diff/HOUR*10)/10}:null;
 }
+
+/* Decision loss function: never call aligned wind or GFS warmth an NWS snow forecast.
+ * Thresholds describe evidence completeness, not snow probability or severity. */
+function windowSignals(index){
+ const list=rangeHours(index),total=RANGES[index].to-RANGES[index].from,
+ snow=list.filter(h=>h.forecast_snow).length,
+ overlap=list.filter(h=>h.forecast_snow&&h.wind_aligned===true).length,
+ wind=list.filter(h=>h.wind_aligned===true).length,
+ missing=list.filter(h=>h.wind_degrees==null).length;
+ const coverage=list.length>=Math.max(6,Math.ceil(total*0.60));
+ const kind=!coverage?"gap":overlap>=2?"converging":snow>=1?"nws-snow":wind>=1?"wind-only":"limited";
+ const note=kind==="gap"?"Forecast coverage incomplete":
+   kind==="converging"?"Snow + wind together":
+   kind==="nws-snow"?"NWS snow forecast":
+   kind==="wind-only"?"Favored wind only":"No combined signal";
+ return {index,kind,note,snow,overlap,wind,missing,rows:list.length,total};
+}
+function getDecision(){
+ const stages=RANGES.map((_,i)=>windowSignals(i)),v=data?.verdict||{};
+ const activeWarning=v.official_warning===true,alertsMissing=data?.alerts_status!=="available";
+ const enough=v.data_ok!==false&&stages[0].rows>=6;
+ const firstOverlap=stages.find(x=>x.kind==="converging");
+ const firstSnow=stages.find(x=>x.snow>0&&x.kind!=="gap");
+ const gaps=stages.filter(x=>x.kind==="gap");
+ let heading,detail,next,preferred=0;
+ if(activeWarning){
+  heading="Active NWS warning at this checkpoint";
+  detail="An official winter warning is active now. Its actual mapped area and expiration—not these model charts—determine where and when the warning applies.";
+  next="Read the original NWS warning and local travel advisories before going.";
+  preferred=firstOverlap?.index??firstSnow?.index??0;
+ }else if(!enough){
+  heading="The NWS forecast needs a fresh check";
+  detail="The current hourly forecast is incomplete or stale. It would be misleading to call any period favorable or quiet from this evidence.";
+  next="Recheck the NWS forecast and current alerts; the model charts cannot fill missing official forecast hours.";
+ }else if(firstOverlap){
+  preferred=firstOverlap.index;
+  heading="First snow-and-wind overlap: "+RANGES[preferred].name;
+  detail="During this window, the NWS explicitly forecasts snow and regional surface winds favor the snowbelt in "+firstOverlap.overlap+" checked hour"+(firstOverlap.overlap===1?"":"s")+". This is a window to monitor, not a prediction of snow accumulation or band location.";
+  next="Check the NWS forecast again closer to "+RANGES[preferred].name+", and review alerts for the destination before travel.";
+ }else if(firstSnow){
+  preferred=firstSnow.index;
+  heading="NWS forecasts snow: "+RANGES[preferred].name;
+  detail="The NWS mentions snow in "+firstSnow.snow+" forecast hour"+(firstSnow.snow===1?"":"s")+". The regional surface-wind test does not provide sustained corroboration for a lake-effect band.";
+  next="Monitor NWS forecast wording and local alerts. Do not use favorable offshore model diagnostics as an independent snow promise.";
+ }else{
+  heading="No NWS snow signal in the checked outlook";
+  detail="In "+stages.reduce((n,x)=>n+x.rows,0)+" available hourly rows, the NWS does not explicitly forecast snow for this representative point. Winds or GFS instability alone cannot change that conclusion.";
+  next="Check back when the NWS updates its forecast; the lake-effect setup could change as cold air arrives.";
+ }
+ if(gaps.length)detail+=" "+gaps.length+" later forecast window"+(gaps.length===1?" has":"s have")+" incomplete hourly coverage; their gaps remain unknown, not clear-weather hours.";
+ if(alertsMissing)next+=" The NWS alert feed is unavailable here: verify warnings directly at weather.gov.";
+ return {heading,detail,next,preferred,stages};
+}
+function viewUrl(){
+ const url=new URL(location.href);
+ url.searchParams.set("region",data?.region?.id||url.searchParams.get("region")||"mi-gaylord");
+ url.searchParams.set("window",RANGES[selectedWindow].key);
+ url.hash="forecast-explainer";
+ return url;
+}
+function refreshViewLink(){
+ const a=$("story-view-link");if(a)a.href=viewUrl().toString();
+}
+function rememberSelection(){
+ const url=new URL(location.href);
+ url.searchParams.set("region",data?.region?.id||url.searchParams.get("region")||"mi-gaylord");
+ url.searchParams.set("window",RANGES[selectedWindow].key);
+ history.replaceState(null,"",url);
+}
+function shareCopy(){
+ const url=viewUrl().toString(),message=$("story-copy-status");
+ if(navigator.clipboard?.writeText){
+  navigator.clipboard.writeText(url).then(()=>{message.textContent="Forecast-window link copied.";},()=>{message.textContent="Clipboard permission unavailable. Open the adjacent link and copy the address.";});
+ }else message.textContent="Clipboard unavailable. Open the adjacent link and copy the address.";
+}
+
 function shortNarrative(h,windowIndex){
  const validCount=h.length,snow=h.filter(v=>v.forecast_snow).length,
  aligned=h.filter(v=>v.wind_aligned===true).length,
@@ -70,14 +146,14 @@ function modelExplanation(when){
 function select(index,at=null){
  if(!data)return;
  selectedWindow=Math.max(0,Math.min(3,index));selectedHour=at;selectedModel=null;
- paint();
+ rememberSelection();paint();
 }
 function selectModel(iso){
  selectedModel=iso;
  const {first}=rows();
  const offset=(ms(iso)-first)/HOUR;
  if(Number.isFinite(offset))selectedWindow=Math.max(0,Math.min(3,RANGES.findIndex(w=>offset>=w.from&&offset<w.to)>=0?RANGES.findIndex(w=>offset>=w.from&&offset<w.to):3));
- selectedHour=null;paint();
+ selectedHour=null;rememberSelection();paint();
 }
 function plot(id,metric,threshold=null){
  const svg=$(id);svg.replaceChildren();
@@ -114,10 +190,17 @@ function plot(id,metric,threshold=null){
  }
 }
 function paint(){
+ const decision=getDecision();
+ $("story-decision-title").textContent=decision.heading;
+ $("story-decision-copy").textContent=decision.detail;
+ $("story-next-check").textContent=decision.next;
+ refreshViewLink();
  const periods=$("story-periods");periods.replaceChildren();
  RANGES.forEach((w,i)=>{
-  const hs=rangeHours(i),overlap=hs.filter(h=>h.forecast_snow&&h.wind_aligned===true).length;
-  const btn=el("button",w.name+(overlap?" · "+overlap+" overlap":" · no overlap"),"story-period"+(i===selectedWindow?" active":""));
+  const stage=decision.stages[i];
+  const btn=el("button",null,"story-period"+(i===selectedWindow?" active":""));
+  btn.appendChild(el("strong",w.name));
+  btn.appendChild(el("span",stage.note+" · "+stage.rows+"/"+stage.total+"h","story-period-note"));
   btn.type="button";btn.setAttribute("aria-pressed",String(i===selectedWindow));btn.addEventListener("click",()=>select(i));periods.appendChild(btn);
  });
  const h=rangeHours(selectedWindow),info=shortNarrative(h,selectedWindow);
@@ -143,15 +226,24 @@ function paint(){
  });
  plot("story-contrast","delta_t_c",13);plot("story-shear","shear_925_850_deg");
  const hasModel=modelSamples().length>0;
- $("story-model-note").textContent=hasModel?"Vertical stems are individual offshore GFS forecast snapshots, not interpolated hourly values. Light shading marks the selected NWS time window. The 13°C contrast is a screening guideline, not a snow probability.":"Model charts are unavailable or stale. The NWS hourly evidence above remains available independently.";
+ $("story-model-note").textContent=hasModel?"Vertical stems show discrete offshore GFS snapshots, not interpolated hourly values. Water temperature is one dated NOAA lakewide analysis held constant across these forecast leads, NOT a future lake-water forecast. The 13°C guideline is not a snow probability.":"Model charts are unavailable or stale. The NWS hourly evidence above remains available independently.";
 }
 function render(incoming){
  data=incoming;selectedWindow=0;selectedHour=null;selectedModel=null;
- const w=incoming?.verdict?.windows||[];
- const firstOverlap=w.findIndex(v=>v.overlap_hours>=2),firstSnow=w.findIndex(v=>v.snow_hours>=2);
- // Start with the first meaningful NWS window instead of inventing a future 'best' day.
- if(firstOverlap>=0)selectedWindow=firstOverlap;else if(firstSnow>=0)selectedWindow=firstSnow;
- if($("story-periods"))paint();
+ const url=new URL(location.href),sameRegion=url.searchParams.get("region")===incoming?.region?.id;
+ const requested=sameRegion?RANGES.findIndex(w=>w.key===url.searchParams.get("window")):-1;
+ const decision=getDecision();
+ if(requested>=0)selectedWindow=requested;
+ else selectedWindow=decision.preferred;
+ if(!sameRegion&&url.searchParams.has("window")){
+  url.searchParams.delete("window");
+  history.replaceState(null,"",url);
+ }
+ if($("story-periods")){
+  const copy=$("story-copy");
+  if(copy&&!copy.dataset.wired){copy.addEventListener("click",shareCopy);copy.dataset.wired="1"}
+  paint();
+ }
 }
 global.LakeEffectExplainer={render};
 })(window);
