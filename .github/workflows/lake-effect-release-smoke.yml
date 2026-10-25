@@ -12,6 +12,7 @@ on:
       - "public/assets/lake-effect-explainer.js"
       - "public/assets/lake-effect-radar.js"
       - "tests/lake-effect-radar.test.js"
+      - "tests/lake-effect-hardening.test.js"
       - "tests/lake-effect-explainer.test.js"
       - "lib/lake-effect-upper-air.js"
       - "tests/lake-effect-upper-air.test.js"
@@ -32,6 +33,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Run lake-effect unit and storm regression tests
+        run: node --test tests/lake-effect*.test.js
       - name: Verify official NOAA and NWS feeds
         run: node scripts/lake-effect-live-smoke.cjs
   browser:
