@@ -46,7 +46,7 @@ function main(){
    let label=["0-24h","24-48h","48-72h"][horizon],bucket=scores[label];
    for(let b=0;b<4;b++){
     const times=Array.from({length:6},(_,i)=>now+(horizon*24+b*6+i)*HOUR);
-    const refs=times.map(t=>truth[new Date(t).toISOString()]);
+    const refs=times.map(t=>truth[new Date(t).toISOString().slice(0,19)+"Z"]);
     const rows=times.map(t=>byTime.get(t));
     if(rows.some(x=>!x||x.wind_degrees===null)||refs.some(x=>typeof x!=="number"||!Number.isFinite(x))){
      bucket.wx.excluded++;bucket.wind.excluded++;continue;
@@ -61,12 +61,12 @@ function main(){
    for(const s of c.snow_amount_periods||[]){
     let end=Date.parse(s.endTime);
     if(!(end>now+horizon*24*HOUR&&end<=now+(horizon+1)*24*HOUR))continue;
-    const refs=Array.from({length:6},(_,i)=>truth[new Date(end-(6-i)*HOUR).toISOString()]);
+    const refs=Array.from({length:6},(_,i)=>truth[new Date(end-(6-i)*HOUR).toISOString().slice(0,19)+"Z"]);
     if(refs.some(x=>typeof x!=="number"||!Number.isFinite(x))){bucket.amount.excluded++;continue}
     classify(bucket.amount,s.accumulation_m>=0.01,refs.reduce((a,x)=>a+x,0)>=1);
    }
   }
-  const first12=Array.from({length:12},(_,i)=>truth[new Date(now+i*HOUR).toISOString()]);
+  const first12=Array.from({length:12},(_,i)=>truth[new Date(now+i*HOUR).toISOString().slice(0,19)+"Z"]);
   const observed12=first12.every(x=>typeof x==="number"&&Number.isFinite(x))?
     first12.reduce((a,x)=>a+x,0)>=1:null;
   const forecast12=assessed.first_12h.snow_forecast_hours>=2;
