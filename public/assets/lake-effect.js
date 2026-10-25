@@ -35,6 +35,51 @@ function hours(hs){
   $("hours").appendChild(item);
  });
 }
+function renderTruthLayers(d){
+ const v=d.verdict||{},obs=d.observed_snowfall||{status:"unavailable",detail:"Observation feed unavailable."};
+ let strip=$("snow-evidence-layers");
+ if(!strip){
+  const css=document.createElement("style");
+  css.textContent=".snow-evidence-layers{border:1px solid #cbdde4;border-radius:11px;padding:15px;background:#f7fafb;margin:17px 0}.snow-evidence-layers h3{font:600 1rem/1.3 system-ui;margin:0 0 9px;color:#15465a}.snow-evidence-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.snow-evidence-item{border:1px solid #d0e1e5;border-radius:8px;background:#fff;padding:12px;min-width:0}.snow-evidence-item small{display:block;font-size:.77rem;line-height:1.4;color:#536975}.snow-evidence-item strong{display:block;font-size:1rem;line-height:1.35;margin:6px 0;color:#214456}.snow-evidence-note{font-size:.8rem;line-height:1.5;margin:10px 0 0;color:#526576}.snow-evidence-source{font-size:.79rem;display:inline-block;margin-top:7px}@media(max-width:650px){.snow-evidence-cards{grid-template-columns:1fr}}";
+  document.head.appendChild(css);
+  strip=child("div",null,"snow-evidence-layers");strip.id="snow-evidence-layers";
+  strip.setAttribute("aria-label","Forecast and observation evidence");
+  $("impact").after(strip);
+ }
+ strip.replaceChildren();
+ strip.appendChild(child("h3","Three different kinds of snow evidence"));
+ const cards=child("div",null,"snow-evidence-cards");
+ const one=(name,value,detail)=>{
+  const item=child("div",null,"snow-evidence-item");
+  item.appendChild(child("small",name));item.appendChild(child("strong",value));
+  item.appendChild(child("small",detail));cards.appendChild(item);
+ };
+ const setup=v.level==="wind-only"?"Wind setup only":
+  v.level==="favored"?"Potential lake effect":v.level==="winter-hazard"?"Winter hazard alert":
+  v.level==="insufficient"?"Not verified":"No confirmed setup";
+ one("1 · Lake-effect setup",setup,"Forecast/model evidence, not observed snow or a predicted band path");
+ one("2 · Official NWS forecast",v.data_ok?(v.official_snow_forecast?"Snow forecast":"Snow not forecast at checkpoint"):"Forecast unavailable",
+   "Forecast conditions can change; this is not a measured snow total");
+ const observed=obs.status==="reported_nearby"?"Snow reported nearby":
+   obs.status==="unverified"?"Not verified":"Feed unavailable";
+ one("3 · Recent field reports",observed,
+   obs.status==="reported_nearby"?"Dated reports within 50 km, not necessarily at this point":
+   "No verified point snowfall conclusion can be made");
+ strip.appendChild(cards);
+ const note=child("p",label(obs.detail,"Recent field observations could not be verified."),"snow-evidence-note");
+ strip.appendChild(note);
+ for(const report of (Array.isArray(obs.reports)?obs.reports.slice(0,3):[])){
+  strip.appendChild(child("p",formatDate(report.time)+": "+report.amount_in+" inches reported at "+
+    report.city+" ("+report.distance_km+" km from checkpoint). Source: "+report.source_name+".","snow-evidence-note"));
+ }
+ try{
+  const url=new URL(obs.source||"");
+  if(url.protocol==="https:"&&url.hostname==="mesonet.agron.iastate.edu"){
+   const a=child("a","View dated storm-report source","snow-evidence-source");
+   a.href=url.href;a.target="_blank";a.rel="noopener";strip.appendChild(a);
+  }
+ }catch{}
+}
 function renderUpperAir(d){
  const air=d.upper_air||{};
  let box=$("upper-air-model");
@@ -83,6 +128,7 @@ function render(d){
  text("lake-reading",t.status==="available"?"NOAA lakewide average: "+t.fahrenheit+"°F ("+t.celsius+"°C)":t.status==="stale"?"Last NOAA lake reading is stale.": "Current lake temperature is unavailable.");
  text("lake-note",t.date?"GLSEA analysis dated "+formatDate(t.date)+". Lakewide, satellite-derived; not a shoreline thermometer or instability measurement.":"NOAA lakewide analysis could not be verified. No temperature value was substituted.");
  renderUpperAir(d);
+ renderTruthLayers(d);
  text("source-age","NWS hourly forecast updated: "+formatDate(d.forecast_updated)+". Data retrieved: "+formatDate(d.generated_at)+".");
  text("limitations",(d.limitations||[]).join(" "));
  const f=$("forecast-link"),a=$("alert-link");
