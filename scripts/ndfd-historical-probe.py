@@ -36,32 +36,36 @@ def main():
   prefix=f"wmo/{field}/{PROBE_DATE}/"
   try:
    objects=keys(prefix)
-   results[field]={"objects":len(objects),"first":objects[:20]}
+   groups={}
+   for item in objects:
+    tag=item[0].rsplit("/",1)[-1].split("_")[0]
+    if tag not in groups:groups[tag]=item
+   results[field]={"objects":len(objects),"representative_files":groups}
    if not objects:continue
    # select first issuance of this day: issued-before-valid event
-   key,size=objects[0]
-   if size>20_000_000:raise RuntimeError("large grib ignored")
-   with tempfile.NamedTemporaryFile(suffix=".grib2") as f:
-    with urllib.request.urlopen(BUCKET+urllib.parse.quote(key,safe="/"),timeout=40) as response:
-     while True:
-      block=response.read(1048576)
-      if not block:break
-      f.write(block)
-    f.flush();f.seek(0)
-    blob=f.read();gribs=[];offset=0
-    for i in range(4):
-     offset=blob.find(b"GRIB",offset)
-     if offset<0:break
-     length=int.from_bytes(blob[offset+8:offset+16],"big")
-     if length<20 or offset+length>len(blob):raise ValueError("invalid GRIB frame length")
-     raw=blob[offset:offset+length]
-     if raw[-4:]!=b"7777":raise ValueError("GRIB trailer absent")
-     offset+=length
-     try:h=codes_new_from_message(raw)
-     except Exception as e:gribs.append({"readerror":str(e)});continue
-     try:gribs.append(meta(h))
-     finally:codes_release(h)
-    results[field]["gribs"]=gribs
+   for code,(key,size) in groups.items():
+    if size>20_000_000:continue
+    with tempfile.NamedTemporaryFile(suffix=".grib2") as f:
+     with urllib.request.urlopen(BUCKET+urllib.parse.quote(key,safe="/"),timeout=40) as response:
+      while True:
+       block=response.read(1048576)
+       if not block:break
+       f.write(block)
+     f.flush();f.seek(0)
+     blob=f.read();gribs=[];offset=0
+     for i in range(4):
+      offset=blob.find(b"GRIB",offset)
+      if offset<0:break
+      length=int.from_bytes(blob[offset+8:offset+16],"big")
+      if length<20 or offset+length>len(blob):raise ValueError("invalid GRIB frame length")
+      raw=blob[offset:offset+length]
+      if raw[-4:]!=b"7777":raise ValueError("GRIB trailer absent")
+      offset+=length
+      try:h=codes_new_from_message(raw)
+      except Exception as e:gribs.append({"readerror":str(e)});continue
+      try:gribs.append(meta(h))
+      finally:codes_release(h)
+     results[field].setdefault("gribs_by_group",{})[code]=gribs[:2]
   except Exception as e:results[field]["error"]=type(e).__name__+": "+str(e)[:300]
  print("NDFD_PROBE_JSON_BEGIN")
  print(json.dumps(results,indent=2,default=str))
