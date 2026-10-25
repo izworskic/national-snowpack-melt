@@ -1,0 +1,20 @@
+name: NOAA NDFD historical GRIB probe
+on:
+  pull_request:
+    paths:
+      - "scripts/ndfd-historical-probe.py"
+      - ".github/workflows/ndfd-historical-probe.yml"
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install GRIB2 reader
+        run: python -m pip install --disable-pip-version-check eccodes==2.43.0
+      - name: Read NOAA official archived NDFD GRIB fields
+        run: python scripts/ndfd-historical-probe.py
