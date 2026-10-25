@@ -85,6 +85,7 @@ test("endpoint integrates one NWS point, hourly, alerts and NOAA GLSEA; degraded
   else if(url.includes("/forecast/hourly"))body={properties:{updated:new Date(NOW).toISOString(),periods:Array.from({length:12},(_,i)=>mkHour(i))}};
   else if(url.includes("/alerts/active")){ok=false;body={}}
   else if(url.includes("mapservices.weather.noaa.gov"))body={features:[]};
+  else if(url.includes("mesonet.agron.iastate.edu"))body={features:[{properties:{typetext:"SNOW",magf:3,unit:"Inch",valid:new Date(NOW-3600000).toISOString(),lat:46.54,lon:-87.4,city:"Marquette",source:"CO-OP Observer"}}]};
   else body="Year,Day,Sup,Mich,Huron,Erie,Ont\n2026,348,5,6,4,3,4\n";
   return {ok,status:ok?200:503,json:async()=>body,text:async()=>body};
  };
@@ -93,7 +94,7 @@ test("endpoint integrates one NWS point, hourly, alerts and NOAA GLSEA; degraded
   assert.equal(d.status,"ok");assert.equal(d.alerts_status,"unavailable");
   assert.equal(d.verdict.confidence,"low");assert.match(d.verdict.impact,/unavailable/i);
   assert.equal(d.lake_temperature.scope,"lakewide surface average");
-  assert.equal(calls.length,8);assert.equal(d.observed_snowfall.status,"unavailable");assert.equal(d.upper_air.status,"unavailable");assert.equal(d.wssi_impact.status,"not-depicted");assert.equal(d.lake_ice_reference.status,"unavailable");
+  assert.equal(calls.length,8);assert.equal(d.observed_snowfall.status,"reported_nearby");assert.equal(d.observed_snowfall.reports[0].amount_in,3);assert.equal(d.upper_air.status,"unavailable");assert.equal(d.wssi_impact.status,"not-depicted");assert.equal(d.lake_ice_reference.status,"unavailable");
  }finally{global.fetch=orig}
 });
 test("frontend keeps source identity, crawlable content and no fake geographic band",()=>{
