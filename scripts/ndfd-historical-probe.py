@@ -2,6 +2,7 @@
 """NOAA NDFD historical GRIB2 field probe; source data must be issued before storm."""
 import datetime as dt
 import json, os, pathlib, re, sys, tempfile, urllib.parse, urllib.request, xml.etree.ElementTree as ET
+from ndfd_weather import weather_keys, key_at_index, categories
 from eccodes import codes_new_from_message,codes_get,codes_grib_find_nearest,codes_release,codes_get_array,codes_get_string
 BUCKET="https://noaa-ndfd-pds.s3.amazonaws.com/"
 PROBE_DATE="2025/11/27"
@@ -43,7 +44,9 @@ def main():
    results[field]={"objects":len(objects),"representative_files":groups}
    if not objects:continue
    # select first issuance of this day: issued-before-valid event
+   target={"wx":"YJUZ88","snow":"YSUZ88","wdir":"YBUZ88","temp":"YEUZ88"}[field]
    for code,(key,size) in groups.items():
+    if code!=target:continue
     if size>20_000_000:continue
     with tempfile.NamedTemporaryFile(suffix=".grib2") as f:
      with urllib.request.urlopen(BUCKET+urllib.parse.quote(key,safe="/"),timeout=40) as response:
@@ -70,5 +73,6 @@ def main():
  print("NDFD_PROBE_JSON_BEGIN")
  print(json.dumps(results,indent=2,default=str))
  print("NDFD_PROBE_JSON_END")
- if not any(x.get("gribs") for x in results.values()):sys.exit(2)
+ if not all(x.get("gribs_by_group") for x in results.values()):sys.exit(2)
+ if not results["wx"]["gribs_by_group"]["YJUZ88"][0].get("weather_buffs"):sys.exit(3)
 if __name__=="__main__":main()
