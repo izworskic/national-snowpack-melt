@@ -16,7 +16,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from functools import lru_cache
-from eccodes import codes_new_from_message,codes_grib_find_nearest,codes_get,codes_get_element,codes_release
+from eccodes import codes_new_from_message,codes_grib_find_nearest,codes_get,codes_get_elements,codes_release
 from ndfd_weather import messages,weather_keys,key_at_index,categories
 
 ROOT=pathlib.Path(__file__).resolve().parents[1]
@@ -90,7 +90,7 @@ def extract(field,date,sites):
      near=codes_grib_find_nearest(h,lat,lon)[0]
      if near["distance"]>15:raise RuntimeError("Wrong NDFD geographic grid for "+site)
      indices[site]=near["index"]
-    try:num=float(codes_get_element(h,"values",indices[site]))
+    try:num=float(codes_get_elements(h,"values",[indices[site]])[0])
     except Exception:
      lat,lon=REGIONS[site]
      num=float(codes_grib_find_nearest(h,lat,lon)[0]["value"])
