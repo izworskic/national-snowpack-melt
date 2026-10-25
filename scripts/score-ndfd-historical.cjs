@@ -26,6 +26,8 @@ function main(){
  const root=JSON.parse(fs.readFileSync(DATA,"utf8"));
  if(root.schema!=="nws-ndfd-historical-point-replay-v1"||root.cases?.length!==14)
   throw Error("Expected 14 genuine NDFD archive checkpoint snapshots");
+ if(root.sources.length!==30||root.sources.some(s=>!s.key?.startsWith("wmo/")||!/^([a-f0-9]{64})$/.test(s.sha256||"")||!s.modified||s.bytes<1000))
+  throw Error("Original NWS forecast source-file provenance missing or changed");
  const ids=new Set(),scores=Object.fromEntries(["0-24h","24-48h","48-72h"].map(x=>[x,{wx:empty(),wind:empty(),amount:empty()}]));
  let snapshots=[],snapshotScores=empty();
  for(const c of root.cases){
@@ -78,6 +80,12 @@ function main(){
    data_ok:assessed.data_ok,observed_first12_snow_ge_1cm:observed12,
    forecast_first12_snow_ge_2_hours:forecast12});
  }
+ const used=Object.fromEntries(Object.entries(scores).map(([key,v])=>[key,[v.wx.tp,v.wx.fp,v.wx.fn,v.wx.tn,v.wx.excluded]]));
+ const expected={"0-24h":[1,15,0,26,14],"24-48h":[5,28,5,18,0],"48-72h":[6,19,8,23,0]};
+ if(JSON.stringify(used)!==JSON.stringify(expected))
+  throw Error("Historical forecast coverage/contingency changed; review source SHA-256 and evidence before updating benchmark");
+ if(snapshotScores.tp+snapshotScores.fp+snapshotScores.fn+snapshotScores.tn!==14||snapshots.some(x=>!x.data_ok||x.hours<48))
+  throw Error("NWS historical point-replay completeness regressed");
  const result={
   schema:"nws-ndfd-actual-history-skill-v1",
   source:"Authentic 2024-25 NWS issued categorical-weather and wind WMO NDFD GRIB2",
