@@ -124,13 +124,22 @@ def main():
    issued=products["wx"][site]
    wind=products["wdir"][site]
    snowfall=products["snow"][site]
-   overlap=sorted(set(issued)&set(wind))
+   weather_times=sorted(issued)
    periods=[]
-   for at in overlap:
-    wx=issued[at]
-    if not isinstance(wx,dict) or wind[at] is None:continue
+   # NDFD Wx grids may be 3-hourly while issued wind-direction grids are hourly.
+   # For each genuine wind valid-hour, select the closest already-issued Wx
+   # grid valid time within 90 minutes. This is TEMPORAL RESAMPLING, not raw
+   # /forecast/hourly JSON; preserve original Wx valid hour for audit.
+   for at in sorted(wind):
+    if wind[at] is None:continue
+    closest=min(weather_times,key=lambda w:abs((dt.datetime.fromisoformat(w.replace("Z","+00:00"))-dt.datetime.fromisoformat(at.replace("Z","+00:00"))).total_seconds()))
+    delta=abs((dt.datetime.fromisoformat(closest.replace("Z","+00:00"))-dt.datetime.fromisoformat(at.replace("Z","+00:00"))).total_seconds())
+    if delta>5400:continue
+    wx=issued[closest]
+    if not isinstance(wx,dict):continue
     periods.append({"startTime":at,"windDirection":str(wind[at]),"shortForecast":wx["shortForecast"],
-      "temperature":None,"forecast_nws_wx_key":wx["nws_wx_key"],"nws_categorical_snow":wx["snow"]})
+      "temperature":None,"forecast_nws_wx_key":wx["nws_wx_key"],"nws_categorical_snow":wx["snow"],
+      "original_nws_wx_valid_at":closest,"resampled_weather":closest!=at})
    if len(periods)<12:raise RuntimeError(f"Missing reconstructed hourly forecast for {site} at {day}")
    fixture=json.loads((ROOT/"tests"/"fixtures"/"lake-effect-history"/({
     "ny-buffalo":"buf-2025-11","ny-oswego":"oswego-2025-11",
@@ -147,7 +156,7 @@ def main():
     "issued_cycle_utc":next(x["reference_cycle_utc"] for x in source_manifest[-3:] if x["field"]=="wx"),
     "published_at_utc":forecast_updated,"periods":periods,"snow_amount_periods":snow_periods,
     "reference_era5_cm_by_hour":reference,
-    "caveat":"NDFD categorical weather and 10-m wind are real issued NWS gridded fields; reconstructed shortForecast, not the original api.weather.gov/forecast/hourly text. Active alerts and historic lake temperatures not replayed.",
+    "caveat":"NDFD categorical weather (often three-hourly) and 10-m wind (hourly) are real issued NWS gridded fields; NDFD Wx is nearest-valid-time resampled to wind forecast hours within 90 minutes. This is not original api.weather.gov/forecast/hourly text. Active alerts and historic lake temperatures not replayed.",
     "source_keys":[x["key"] for x in source_manifest[-3:]]
    })
  out={"schema":"nws-ndfd-historical-point-replay-v1",
