@@ -82,7 +82,7 @@ def categories(weather_key):
         parts.append(code)
     snow = "S" in parts or "SW" in parts
     blowing = "BS" in parts and not snow
-    return snow, blowing, ("Snow Showers" if "SW" in parts else "Snow" if snow else "Blowing Snow" if blowing else "No Snow")
+    return snow, blowing, ("Snow Showers" if "SW" in parts else "Snow" if snow else "Blowing Snow" if blowing else "Other Weather")
 
 def key_at_index(keys, value):
     if not isinstance(value, (int, float)) or not (0 <= value < len(keys)) or int(value) != value:
