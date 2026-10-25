@@ -93,7 +93,7 @@ test("endpoint integrates one NWS point, hourly, alerts and NOAA GLSEA; degraded
   assert.equal(d.status,"ok");assert.equal(d.alerts_status,"unavailable");
   assert.equal(d.verdict.confidence,"low");assert.match(d.verdict.impact,/unavailable/i);
   assert.equal(d.lake_temperature.scope,"lakewide surface average");
-  assert.equal(calls.length,7);assert.equal(d.upper_air.status,"unavailable");assert.equal(d.wssi_impact.status,"not-depicted");assert.equal(d.lake_ice_reference.status,"unavailable");
+  assert.equal(calls.length,8);assert.equal(d.observed_snowfall.status,"unavailable");assert.equal(d.upper_air.status,"unavailable");assert.equal(d.wssi_impact.status,"not-depicted");assert.equal(d.lake_ice_reference.status,"unavailable");
  }finally{global.fetch=orig}
 });
 test("frontend keeps source identity, crawlable content and no fake geographic band",()=>{
