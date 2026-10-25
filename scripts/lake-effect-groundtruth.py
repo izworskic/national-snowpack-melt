@@ -14,6 +14,12 @@ OUT=ROOT/"tmp/lake-effect-station-groundtruth.json"
 UA={"User-Agent":"GreatLakesHistoricalSnowValidation/1.0 (https://chrisizworski.com/lake-effect-snow/)"}
 PLACES={"ny-buffalo":(42.79,-78.84,"NY"),"ny-oswego":(43.45,-76.51,"NY"),"oh-cleveland":(41.52,-81.55,"OH"),"pa-erie":(42.13,-80.09,"PA"),"mi-marquette":(46.54,-87.40,"MI"),"mi-gaylord":(45.03,-84.67,"MI"),"wi-milwaukee":(43.04,-87.91,"WI")}
 KM_LIMIT=65
+WIND_SECTORS={"ny-buffalo":(220,290),"ny-oswego":(245,335),"oh-cleveland":(235,320),"pa-erie":(230,335),"mi-marquette":(300,45),"mi-gaylord":(250,320),"wi-milwaukee":(25,135)}
+def aligned(region,bearing):
+ try:a=float(bearing)%360
+ except (TypeError,ValueError):return False
+ lower,upper=WIND_SECTORS[region]
+ return lower<=a<=upper if lower<=upper else a>=lower or a<=upper
 def request(url,timeout=35):
  with urllib.request.urlopen(urllib.request.Request(url,headers=UA),timeout=timeout) as res:return res.read()
 def km(a,b,c,d):
@@ -86,6 +92,7 @@ def snow_forecast(c,begin,end):
  start=dt.datetime.fromisoformat(begin.replace("Z","+00:00"));stop=dt.datetime.fromisoformat(end.replace("Z","+00:00"))
  vals=[p for p in c.get("periods",[]) if start<=dt.datetime.fromisoformat(p["startTime"].replace("Z","+00:00"))<stop]
  return {"valid_hours":len(vals),"forecast_snow_hours":sum(bool(p.get("nws_categorical_snow")) for p in vals),
+         "wind_aligned_hours":sum(bool(p.get("nws_categorical_snow")) and aligned(c["region_id"],p.get("windDirection")) for p in vals),
          "forecast_signal":sum(bool(p.get("nws_categorical_snow")) for p in vals)>=2}
 def main():
  root=json.loads(INPUT.read_text())
