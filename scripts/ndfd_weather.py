@@ -57,7 +57,7 @@ def weather_keys(message):
         byte = offset // 8
         shift = offset % 8
         # At most two bytes needed for a <=8-bit value starting at any bit.
-        group = int.from_bytes(data[byte:byte + 2].ljust(2, b"\\x00"), "big")
+        group = int.from_bytes(data[byte:byte + 2].ljust(2, b"\x00"), "big")
         value = (group >> (16 - bits - shift)) & ((1 << bits) - 1)
         if value > 127:
             raise ValueError("Invalid NDFD weather ASCII")
@@ -65,7 +65,7 @@ def weather_keys(message):
     raw = bytes(numeric)
     if raw[-1] != 0:
         raise ValueError("Unterminated NDFD weather key table")
-    entries = [part.decode("ascii") for part in raw[:-1].split(b"\\x00")]
+    entries = [part.decode("ascii") for part in raw[:-1].split(b"\x00")]
     if not entries or not all(":" in x for x in entries):
         raise ValueError("Not an NDFD weather key table")
     return entries
