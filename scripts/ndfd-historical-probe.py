@@ -26,6 +26,9 @@ def meta(handle):
    near=codes_grib_find_nearest(handle,lat,lon)
    result[name]={"near":near}
   except Exception as e:result[name]={"error":str(e)[:150]}
+ for key in ["gridDefinitionTemplateNumber","latitudeOfFirstGridPointInDegrees","longitudeOfFirstGridPointInDegrees","latitudeOfLastGridPointInDegrees","longitudeOfLastGridPointInDegrees","Ni","Nj"]:
+  try:result[key]=str(codes_get(handle,key))
+  except Exception:pass
  return result
 def main():
  results={}
@@ -33,7 +36,7 @@ def main():
   prefix=f"wmo/{field}/{PROBE_DATE}/"
   try:
    objects=keys(prefix)
-   results[field]={"objects":len(objects),"first":objects[:2]}
+   results[field]={"objects":len(objects),"first":objects[:20]}
    if not objects:continue
    # select first issuance of this day: issued-before-valid event
    key,size=objects[0]
