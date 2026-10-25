@@ -97,6 +97,7 @@ async function selectRegion(id){
  const r=regions.find(r=>r.id===id);if(!r)return;
  $("state").value=r.state;options();$("region").value=id;
  const seq=++requestId;$("dashboard").hidden=true;
+ window.LakeEffectRadar?.suspend?.();
  status("Checking NWS forecast and NOAA lake observations for "+r.name+"…");
  try{
   const res=await fetch(ENDPOINT+"?region="+encodeURIComponent(id),{headers:{accept:"application/json"}});
