@@ -66,7 +66,16 @@ def main():
       offset+=length
       try:h=codes_new_from_message(raw)
       except Exception as e:gribs.append({"readerror":str(e)});continue
-      try:gribs.append(meta(h))
+      try:
+       item=meta(h)
+       if field=="wx":
+        try:
+         wxkeys=weather_keys(raw)
+         item["weather_key_count"]=len(wxkeys)
+         item["weather_buffs"]=key_at_index(wxkeys,item["buffalo"]["near"][0]["value"])
+         item["weather_mqt"]=key_at_index(wxkeys,item["marquette"]["near"][0]["value"])
+        except Exception as err:item["weather_decoder_error"]=str(err)
+       gribs.append(item)
       finally:codes_release(h)
      results[field].setdefault("gribs_by_group",{})[code]=gribs[:2]
   except Exception as e:results[field]["error"]=type(e).__name__+": "+str(e)[:300]
