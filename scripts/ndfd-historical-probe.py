@@ -2,7 +2,7 @@
 """NOAA NDFD historical GRIB2 field probe; source data must be issued before storm."""
 import datetime as dt
 import json, os, pathlib, re, sys, tempfile, urllib.parse, urllib.request, xml.etree.ElementTree as ET
-from eccodes import codes_grib_new_from_file,codes_get,codes_grib_find_nearest,codes_release,codes_get_array,codes_get_string
+from eccodes import codes_new_from_message,codes_get,codes_grib_find_nearest,codes_release,codes_get_array,codes_get_string
 BUCKET="https://noaa-ndfd-pds.s3.amazonaws.com/"
 PROBE_DATE="2025/11/27"
 FIELDS=("wx","snow","wdir","temp")
@@ -45,11 +45,17 @@ def main():
       if not block:break
       f.write(block)
     f.flush();f.seek(0)
-    gribs=[]
+    blob=f.read();gribs=[];offset=0
     for i in range(4):
-     try:h=codes_grib_new_from_file(f)
-     except Exception as e:gribs.append({"readerror":str(e)});break
-     if h is None:break
+     offset=blob.find(b"GRIB",offset)
+     if offset<0:break
+     length=int.from_bytes(blob[offset+8:offset+16],"big")
+     if length<20 or offset+length>len(blob):raise ValueError("invalid GRIB frame length")
+     raw=blob[offset:offset+length]
+     if raw[-4:]!=b"7777":raise ValueError("GRIB trailer absent")
+     offset+=length
+     try:h=codes_new_from_message(raw)
+     except Exception as e:gribs.append({"readerror":str(e)});continue
      try:gribs.append(meta(h))
      finally:codes_release(h)
     results[field]["gribs"]=gribs
