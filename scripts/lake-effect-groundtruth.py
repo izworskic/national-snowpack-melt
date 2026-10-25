@@ -5,7 +5,7 @@ Uses original frozen issued-NWS NDFD point-grid forecast fixture as forecast inp
 IEM NWS COOP daily observations are NOT interpolated to precise forecast hours.
 NOHRSC 24h analyses are separately identified, never substituted for station truth.
 """
-import csv,datetime as dt,hashlib,io,json,math,pathlib,sys,time,urllib.request,urllib.error
+import csv,datetime as dt,hashlib,io,json,math,pathlib,sys,time,urllib.request,urllib.error,urllib.parse
 from functools import lru_cache
 from eccodes import codes_new_from_message,codes_grib_find_nearest,codes_get,codes_release
 ROOT=pathlib.Path(__file__).resolve().parents[1]
@@ -59,6 +59,14 @@ def daily_month(state,year,month):
    "_COOP&year1="+str(first.year)+"&month1="+str(first.month)+"&day1=1"+
    "&year2="+str(last.year)+"&month2="+str(last.month)+"&day2="+str(last.day)+
    "&na=blank&format=csv")
+ # Explicitly request only verified COOP stations within 65km of one of
+ # our archived checkpoints. The IEM endpoint supports repeated stations=
+ # parameters, tested against its public API; avoids expensive all-state
+ # 31-day exports and the request-cost budget.
+ places=[(lat,lon) for lat,lon,st in PLACES.values() if st==state]
+ wanted=sorted(id for id,s in network(state).items() if any(km(lat,lon,s["lat"],s["lon"])<=KM_LIMIT for lat,lon in places))
+ if not wanted:raise ValueError("No geolocated COOP stations within site radius")
+ url+="".join("&stations="+urllib.parse.quote(st,safe="") for st in wanted)
  time.sleep(1.6)
  raw=request(url).decode("utf-8-sig")
  rows=list(csv.DictReader(io.StringIO(raw)))
