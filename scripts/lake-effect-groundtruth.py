@@ -85,11 +85,10 @@ def nohrsc(day):
    for id,(lat,lon,state) in PLACES.items():
     n=codes_grib_find_nearest(h,lat,lon)[0]
     if n["distance"]>20:continue
-    vals=[{"km_from_site":round(float(n["distance"]),2),"raw_value":float(n["value"])}]
-    for da,db in [(0,.20),(.2,0),(-.2,0),(0,-.20)]:
-     spot=codes_grib_find_nearest(h,lat+da,lon+db)[0]
-     if spot["distance"]<20:vals.append({"km_from_site":round(float(spot["distance"]),2),"raw_value":float(spot["value"])})
-    samples[id]=vals
+    # One nearest NOHRSC 1-km grid sample per checkpoint: independent COOP
+    # stations, not an expensive/over-interpreted analysis neighborhood,
+    # establish the 15/30/65-km spatial sensitivity.
+    samples[id]=[{"km_from_site":round(float(n["distance"]),2),"raw_value":float(n["value"])}]
   finally:codes_release(h)
   return {"status":"available","source":url,"sha256":hashlib.sha256(blob).hexdigest(),"analysis_valid_at":day+"T12:00:00Z","units":unit,"sampled_values":samples,"caution":"NOHRSC is a gridded, observation-informed ANALYSIS, not independent station truth. Nearest samples do not identify exact band positions."}
  except Exception as e:return {"status":"unavailable","source":url,"reason":str(e)[:140]}
