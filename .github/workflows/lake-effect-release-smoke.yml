@@ -13,6 +13,11 @@ on:
       - "public/assets/lake-effect-radar.js"
       - "tests/lake-effect-radar.test.js"
       - "tests/lake-effect-hardening.test.js"
+      - "tests/lake-effect-history.test.js"
+      - "tests/fixtures/lake-effect-history/**"
+      - "lib/lake-effect-history-validation.js"
+      - "scripts/benchmark-lake-effect-history.cjs"
+      - "docs/LAKE_EFFECT_HISTORY_VALIDATION_2026.md"
       - "tests/lake-effect-explainer.test.js"
       - "lib/lake-effect-upper-air.js"
       - "tests/lake-effect-upper-air.test.js"
@@ -35,6 +40,8 @@ jobs:
           node-version: 22
       - name: Run lake-effect unit and storm regression tests
         run: node --test tests/lake-effect*.test.js
+      - name: Verify historical fixed-lead model proxy and NWS evidence provenance
+        run: node scripts/benchmark-lake-effect-history.cjs --check
       - name: Verify official NOAA and NWS feeds
         run: node scripts/lake-effect-live-smoke.cjs
   browser:
