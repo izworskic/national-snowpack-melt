@@ -64,6 +64,18 @@ test("CARTO browser key must come from the site configuration and every tile mus
  assert.match(js,/fetch\("\/api\/carto-basemap-config"/);
  assert.match(js,/OpenStreetMap street map/);
  assert.match(html,/id="radar-basemap-status"/);
- assert.match(html,/lake-effect-radar\.js\?v=20261024-2/);
+ assert.match(html,/lake-effect-radar\.js\?v=20261025-1/);
  assert.doesNotMatch(js,/tileLayer\("https:\/\/basemaps\.cartocdn\.com\/light_all/);
+});
+
+test("long-open radar expires after 45 minutes and region requests pause old images",()=>{
+ const radar=hook(),now=Date.parse("2026-10-25T12:00:00Z");
+ assert.equal(radar.framesFresh([now-44*60000],now),true);
+ assert.equal(radar.framesFresh([now-46*60000],now),false);
+ assert.equal(radar.framesFresh([now+6*60000],now),false);
+ assert.equal(radar.framesFresh([],now),false);
+ assert.equal(radar.framesFresh([null],now),false);
+ assert.match(js,/function suspend\(/);
+ assert.match(js,/reset\(\);setStatus\("Radar observations expired/);
+ assert.match(base,/LakeEffectRadar\?\.suspend\?\.\(\)/);
 });
