@@ -109,6 +109,23 @@ const server=http.createServer((req,res)=>{
   await page.locator("#radar-time").fill("1");
   await page.locator("#radar-latest").click();
   assert.match(await page.locator("#radar-frame-time").innerText(),/of \d+ confirmed frames/);
+
+  // Expired observation frames must not survive in a long-open tab.
+  await page.evaluate(()=>{
+   const realNow=Date.now;window.__lakeRadarRealNow=realNow;
+   Date.now=()=>realNow()+60*60000;
+  });
+  await page.locator("#radar-latest").click();
+  assert.match(await page.locator("#radar-status").innerText(),/expired/);
+  assert.equal(await page.locator("#radar-play").isDisabled(),true);
+  assert.match(await page.locator("#radar-frame-time").innerText(),/No verified frame/);
+  await page.evaluate(()=>{Date.now=window.__lakeRadarRealNow;delete window.__lakeRadarRealNow});
+  await page.locator("#radar-refresh").click();
+  await page.waitForFunction(()=>document.getElementById("radar-time").max!=="0");
+  await page.locator("#radar-map .leaflet-control-zoom-in").click();
+  await page.waitForTimeout(200);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),
+   "Map zoom must not shift the document horizontally");
   assert.match(await page.locator("#radar-directions").getAttribute("href"),/google\.com\/maps/);
   const d=await page.evaluate(()=>({body:document.documentElement.scrollWidth,viewport:innerWidth,timeline:document.querySelector(".hours").scrollWidth,container:document.querySelector(".hours").clientWidth}));
   assert.ok(d.body<=d.viewport+2,"Body horizontal overflow at "+width+"px: "+JSON.stringify(d));

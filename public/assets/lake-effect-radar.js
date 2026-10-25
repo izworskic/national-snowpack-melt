@@ -61,8 +61,15 @@ function radarUrl(ms){
  q.set("interpolation","RSP_NearestNeighbor");q.set("time",String(ms));q.set("f","image");
  return {url:ROOT+"/exportImage?"+q.toString(),bounds:b.bounds,key:b.bbox.join(",")+"|"+b.size.join(",")};
 }
+function framesFresh(values,now=Date.now()){
+ return Array.isArray(values)&&values.length>0&&Number.isFinite(values.at(-1))&&
+  values.at(-1)<=now+5*MIN&&now-values.at(-1)<=45*MIN;
+}
 function draw(){
  if(!map||!frames.length)return;
+ if(!framesFresh(frames)){
+  reset();setStatus("Radar observations expired while this page was open. Check latest frames for a fresh NOAA view.",true);return;
+ }
  const ts=frames[index],t=$("radar-frame-time"),slider=$("radar-time");
  if(t)t.textContent="Radar observation: "+stamp(ts)+" · "+(index+1)+" of "+frames.length+" confirmed frames";
  if(slider)slider.value=String(index);
@@ -71,7 +78,7 @@ function draw(){
   overlay.setBounds(frame.bounds);overlay.setUrl(frame.url);
  }else{
   overlay=global.L.imageOverlay(frame.url,frame.bounds,{opacity:0.85,interactive:false,className:"lake-radar-raster",alt:"NOAA MRMS quality-controlled base reflectivity image at "+stamp(ts)});
-  overlay.on("error",()=>{stop();setStatus("NOAA radar image could not load. Use the official radar viewer.",true)});
+  overlay.on("error",()=>{reset();setStatus("NOAA radar image could not load. Use the official radar viewer.",true)});
   overlay.addTo(map);
  }
  lastBoundsKey=frame.key;
@@ -166,7 +173,7 @@ function parseFrames(json,now=Date.now()){
  const raw=json.features.map(f=>f?.attributes?.idp_validtime).filter(ms=>safe(ms,now-4*60*MIN,now+5*MIN)).sort((a,b)=>a-b);
  if(!raw.length)return [];
  const unique=[];for(const ms of raw){if(!unique.length||ms-unique[unique.length-1]>=3*MIN)unique.push(ms)}
- if(now-unique[unique.length-1]>45*MIN)return [];
+ if(!framesFresh(unique,now))return [];
  // Preserve actual observed timestamps: ≤13 representative frames across a maximum 4-hour window.
  if(unique.length<=13)return unique;
  const out=[];
@@ -204,6 +211,7 @@ async function fetchFrames(){
 }
 function play(){
  if(playTimer!==null){stop();return}
+ if(!framesFresh(frames)){reset();setStatus("Radar observations have expired. Check latest frames.",true);return}
  if(frames.length<2)return;
  $("radar-play").textContent="Pause radar";
  playTimer=setInterval(()=>{
@@ -219,12 +227,16 @@ async function initialize(){
  try{await ensureLeaflet();makeMap();map.invalidateSize();await fetchFrames()}
  catch{loaded=false;loadPromise=null;setStatus("Radar map unavailable. Open the official NWS radar; the other forecast tools still work.",true)}
 }
+function suspend(){
+ ++token;reset();
+ setStatus("Radar paused while the selected NWS region is being checked.");
+}
 function render(d){
  const region=d?.region;if(!geo(region))return;
  const changed=renderedRegion!==region.id;renderedRegion=region.id;
  if(changed){++token;reset()}
  setRegion(region);
- if(changed){if(loaded)fetchFrames();else setStatus("Radar loads when this section comes into view.")}
+ if(changed||loaded&&!frames.length){if(loaded)fetchFrames();else setStatus("Radar loads when this section comes into view.")}
  if(!observer&&"IntersectionObserver" in global){
   observer=new IntersectionObserver(entries=>{
    if(entries.some(e=>e.isIntersecting)){
@@ -244,5 +256,5 @@ function wire(){
  document.addEventListener("visibilitychange",()=>{if(document.hidden)stop()});
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",wire);else wire();
-global.LakeEffectRadar={render,parseFrames,queryUrl,publicTileUrl};
+global.LakeEffectRadar={render,suspend,parseFrames,framesFresh,queryUrl,publicTileUrl};
 })(window);
