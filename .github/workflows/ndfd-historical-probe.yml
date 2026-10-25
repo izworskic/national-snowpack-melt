@@ -6,13 +6,17 @@ on:
       - "scripts/ndfd-historical-extract.py"
       - "scripts/ndfd_weather.py"
       - "scripts/score-ndfd-historical.cjs"
+      - "scripts/lake-effect-groundtruth.py"
+      - "scripts/score-lake-effect-stations.cjs"
+      - "lib/lake-effect-station-validation.js"
+      - "tests/lake-effect-stations.test.js"
       - "tests/test_ndfd_weather.py"
       - ".github/workflows/ndfd-historical-probe.yml"
   workflow_dispatch:
 jobs:
   historical-nws:
     runs-on: ubuntu-latest
-    timeout-minutes: 16
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -31,6 +35,12 @@ jobs:
         run: python scripts/ndfd-historical-extract.py
       - name: Replay unchanged production decision logic against historical observations
         run: node scripts/score-ndfd-historical.cjs
+      - name: Test geographic station and held-out evaluation gates
+        run: node --test tests/lake-effect-stations.test.js
+      - name: Retrieve historic COOP snowfall reports and NOHRSC gridded analyses
+        run: python scripts/lake-effect-groundtruth.py
+      - name: Score station-grounded geographic coverage and held-out checkpoints
+        run: node scripts/score-lake-effect-stations.cjs
       - name: Attach historical NWS source manifest and skill scores
         if: always()
         uses: actions/upload-artifact@v4
@@ -39,5 +49,7 @@ jobs:
           path: |
             tmp/lake-effect-nws-ndfd-history.json
             tmp/lake-effect-nws-ndfd-result.json
+            tmp/lake-effect-station-groundtruth.json
+            tmp/lake-effect-station-validation-score.json
           if-no-files-found: ignore
           retention-days: 60
