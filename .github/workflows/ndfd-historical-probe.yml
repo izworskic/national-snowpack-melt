@@ -1,0 +1,43 @@
+name: NOAA NDFD Historical Predictive Validation
+on:
+  pull_request:
+    paths:
+      - "scripts/ndfd-historical-probe.py"
+      - "scripts/ndfd-historical-extract.py"
+      - "scripts/ndfd_weather.py"
+      - "scripts/score-ndfd-historical.cjs"
+      - "tests/test_ndfd_weather.py"
+      - ".github/workflows/ndfd-historical-probe.yml"
+  workflow_dispatch:
+jobs:
+  historical-nws:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install official NDFD GRIB2 decoder
+        run: python -m pip install --disable-pip-version-check eccodes==2.43.0
+      - name: Validate strict NDFD local weather code decoding
+        run: python -m unittest discover -s tests -p "test_ndfd_weather.py" -v
+      - name: Confirm real issued Great Lakes NWS archives can be decoded
+        run: python scripts/ndfd-historical-probe.py
+      - name: Extract and freeze 2024-2025 authentic NWS issued weather forecasts
+        run: python scripts/ndfd-historical-extract.py
+      - name: Replay unchanged production decision logic against historical observations
+        run: node scripts/score-ndfd-historical.cjs
+      - name: Attach historical NWS source manifest and skill scores
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nws-ndfd-2025-historical-validation
+          path: |
+            tmp/lake-effect-nws-ndfd-history.json
+            tmp/lake-effect-nws-ndfd-result.json
+          if-no-files-found: ignore
+          retention-days: 60
