@@ -5,7 +5,7 @@ Uses original frozen issued-NWS NDFD point-grid forecast fixture as forecast inp
 IEM NWS COOP daily observations are NOT interpolated to precise forecast hours.
 NOHRSC 24h analyses are separately identified, never substituted for station truth.
 """
-import csv,datetime as dt,hashlib,io,json,math,pathlib,sys,urllib.request
+import csv,datetime as dt,hashlib,io,json,math,pathlib,sys,time,urllib.request,urllib.error
 from functools import lru_cache
 from eccodes import codes_new_from_message,codes_grib_find_nearest,codes_get,codes_release
 ROOT=pathlib.Path(__file__).resolve().parents[1]
@@ -21,7 +21,18 @@ def aligned(region,bearing):
  lower,upper=WIND_SECTORS[region]
  return lower<=a<=upper if lower<=upper else a>=lower or a<=upper
 def request(url,timeout=35):
- with urllib.request.urlopen(urllib.request.Request(url,headers=UA),timeout=timeout) as res:return res.read()
+ # Respect upstream rate limits, do not retry indefinitely or replace data.
+ for attempt in range(4):
+  try:
+   with urllib.request.urlopen(urllib.request.Request(url,headers=UA),timeout=timeout) as res:return res.read()
+  except urllib.error.HTTPError as e:
+   if e.code not in (429,500,502,503,504) or attempt==3:raise
+   cooldown=min(60,8*(attempt+1))
+   time.sleep(cooldown)
+  except (TimeoutError,urllib.error.URLError):
+   if attempt==3:raise
+   time.sleep(3*(attempt+1))
+ raise RuntimeError("Source request unavailable after bounded retries")
 def km(a,b,c,d):
  r=math.pi/180
  x=math.sin((c-a)*r/2)**2+math.cos(a*r)*math.cos(c*r)*math.sin((d-b)*r/2)**2
@@ -37,16 +48,28 @@ def network(state):
   if not (-130<float(co[0])<-65 and 20<float(co[1])<55):continue
   rows[f.get("id")]={"station":f.get("id"),"lat":co[1],"lon":co[0],"name":f.get("properties",{}).get("sname") or f.get("id"),"network":state+"_COOP"}
  return rows
-@lru_cache(maxsize=60)
-def daily(state,day):
- # IEM reports are COOP daily local-day accumulations, NOT hourly storm totals.
- d=dt.date.fromisoformat(day);url=("https://mesonet.agron.iastate.edu/cgi-bin/request/daily.py?network="+state+
-   "_COOP&year1="+str(d.year)+"&month1="+str(d.month)+"&day1="+str(d.day)+
-   "&year2="+str(d.year)+"&month2="+str(d.month)+"&day2="+str(d.day)+"&na=blank&format=csv")
+@lru_cache(maxsize=16)
+def daily_month(state,year,month):
+ # One all-station request per state/month, cached across all storm days.
+ # This avoids one network call for each site/day and respects IEM request budgets.
+ first=dt.date(year,month,1)
+ following=dt.date(year+1,1,1) if month==12 else dt.date(year,month+1,1)
+ last=following-dt.timedelta(days=1)
+ url=("https://mesonet.agron.iastate.edu/cgi-bin/request/daily.py?network="+state+
+   "_COOP&year1="+str(first.year)+"&month1="+str(first.month)+"&day1=1"+
+   "&year2="+str(last.year)+"&month2="+str(last.month)+"&day2="+str(last.day)+
+   "&na=blank&format=csv")
+ time.sleep(1.6)
  raw=request(url).decode("utf-8-sig")
- table=list(csv.DictReader(io.StringIO(raw)))
- if not table or not {"station","day","snow_in"}.issubset(set(table[0])):raise ValueError("No full station COOP snowfall columns")
- return {"url":url,"sha256":hashlib.sha256(raw.encode()).hexdigest(),"rows":table}
+ rows=list(csv.DictReader(io.StringIO(raw)))
+ if not rows or not {"station","day","snow_in"}.issubset(set(rows[0])):raise ValueError("No full station COOP snowfall columns")
+ by_day={}
+ for item in rows:by_day.setdefault(item["day"],[]).append(item)
+ return {"url":url,"sha256":hashlib.sha256(raw.encode()).hexdigest(),"by_day":by_day}
+def daily(state,day):
+ d=dt.date.fromisoformat(day)
+ result=daily_month(state,d.year,d.month)
+ return {"url":result["url"],"sha256":result["sha256"],"rows":result["by_day"].get(day,[])}
 @lru_cache(maxsize=60)
 def nohrsc(day):
  stamp=day.replace("-","");url=f"https://www.nohrsc.noaa.gov/snowfall_v2/data/{stamp[:6]}/sfav2_CONUS_24h_{stamp}12_grid184.grb2"
