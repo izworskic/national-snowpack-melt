@@ -59,3 +59,29 @@ test("storm shifts from aligned flow to off-lake flow without inventing a band",
  assert.equal(v.level,"forecast-snow");
  assert.notEqual(v.confidence,"high");
 });
+
+test("standalone blowing snow is a visibility hazard, not modeled fresh snowfall",()=>{
+ const periods=Array.from({length:12},(_,i)=>hour(i,"NW",i%2?"Patchy Blowing Snow":"Areas Of Blowing Snow"));
+ const v=verdict(periods);
+ assert.equal(v.official_snow_forecast,false);
+ assert.equal(v.level,"wind-only");
+ assert.equal(v.first_12h.overlap_hours,0);
+ const mixed=M.hourRows([hour(0,"NW","Snow Showers and Patchy Blowing Snow")],region.windSector,NOW);
+ assert.equal(mixed[0].forecast_snow,true);
+});
+test("documented November 2025 Buffalo-area SW to WNW shift changes favored exposure",()=>{
+ // NWS Buffalo documented a SW-flow to WNW-flow shift Nov 26–29, 2025.
+ // The hourly inputs below are a synthetic archetype, NOT recovered 2025 NWS forecasts.
+ // Source: https://www.weather.gov/media/buf/2025_2026_WinterSummary.pdf
+ const periods=[...Array.from({length:12},(_,i)=>hour(i,"SW","Snow Showers")),
+  ...Array.from({length:12},(_,i)=>hour(i+12,"WNW","Snow Showers"))];
+ const evaluate=id=>{const r=M.allowed[id];return M.assess({region:r,hours:M.hourRows(periods,r.windSector,NOW),
+  alerts:[],lakeTemp:{status:"available"},forecastUpdated:new Date(NOW).toISOString(),now:NOW})};
+ const buffalo=evaluate("ny-buffalo"),oswego=evaluate("ny-oswego");
+ assert.equal(buffalo.windows[0].overlap_hours,12);
+ assert.equal(buffalo.windows[1].overlap_hours,0);
+ assert.equal(oswego.windows[0].overlap_hours,0);
+ assert.equal(oswego.windows[1].overlap_hours,12);
+ assert.equal(oswego.timing_window,"12–24 hours");
+ assert.notEqual(oswego.confidence,"high");
+});
