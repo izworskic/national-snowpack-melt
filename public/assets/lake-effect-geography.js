@@ -7,7 +7,7 @@ const NOAA="https://mapservices.weather.noaa.gov/vector/rest/services/precip/wpc
 const FULL=[[-94.8,40.4],[-74.9,49.2]],LAYERS={1:{4:1,8:2,12:3},2:{4:6,8:7,12:8},3:{4:11,8:12,12:13}};
 const $=id=>document.getElementById(id);
 const stamp=iso=>new Intl.DateTimeFormat(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}).format(new Date(iso));
-let day=1,threshold=4,primary=null,windowData=null,map=null,marker=null,point=null,overlay=null,base=null,carto=null,viewId=0,fetchId=0,pointId=0,mapVisible=false,started=false,timer=null;
+let day=1,threshold=4,primary=null,windowData=null,map=null,marker=null,point=null,overlay=null,base=null,carto=null,viewId=0,fetchId=0,pointId=0,mapVisible=false,started=false,timer=null,imageTimeout=null;
 const el=(tag,cl,content)=>{const n=document.createElement(tag);if(cl)n.className=cl;if(content!==undefined)n.textContent=content;return n};
 function mount(){
  if($("le-geo"))return;
@@ -88,6 +88,8 @@ async function activate(){
  await loadWindow();
 }
 function updateRegion(){
+ // Invalidate pending point evidence whenever the selected snowbelt changes.
+ ++pointId;
  if(!map||!primary||!Number.isFinite(primary.lat)||!Number.isFinite(primary.lon))return;
  point={lat:primary.lat,lon:primary.lon,selected:true};
  map.setView([primary.lat,primary.lon],6,{animate:false});mark();if(windowData)probe();
@@ -100,6 +102,10 @@ function mark(){
 }
 async function loadWindow(){
  const seq=++fetchId;const d=day,t=threshold;
+ // A selection change invalidates old image callbacks and pending point responses
+ // before the new official issuance and 24-hour window have been verified.
+ ++viewId;++pointId;windowData=null;
+ if(imageTimeout){clearTimeout(imageTimeout);imageTimeout=null}
  if(overlay&&map){map.removeLayer(overlay);overlay=null}
  $("le-geo-valid").textContent="Checking WPC Day "+d+" · ≥"+t+" inches…";
  $("le-geo-issue").textContent="Verifying official issue and 24-hour valid period.";
@@ -133,26 +139,50 @@ function exportUrl(bounds,width,height,layer){
  return NOAA+"/export?"+p;
 }
 function paintOverlay(){
- if(!map||!windowData)return;const id=++viewId,b=map.getBounds(),s=map.getSize();
+ if(!map||!windowData)return;
+ const id=++viewId,b=map.getBounds(),size=map.getSize(),issued=windowData.issuedAt,layerId=windowData.layer;
+ if(imageTimeout){clearTimeout(imageTimeout);imageTimeout=null}
  if(overlay){map.removeLayer(overlay);overlay=null}
+ $("le-geo-map-fallback").hidden=false;
+ $("le-geo-map-fallback").textContent="Loading the published WPC probability outlines…";
  $("le-geo-map-status").textContent="Drawing official WPC Day "+day+" contours…";
- const image=root.L.imageOverlay(exportUrl(b,s.x,s.y,windowData.layer),b,{opacity:1,interactive:false});
- image.on("load",()=>{if(id===viewId&&windowData){$("le-geo-map-fallback").hidden=true;$("le-geo-map-status").textContent="WPC published outlines: blue 10–39%, green 40–69%, red ≥70%. Tap the map to inspect a point."}});
- image.on("error",()=>{if(id===viewId){map.removeLayer(image);if(overlay===image)overlay=null;$("le-geo-map-fallback").hidden=false;$("le-geo-map-fallback").textContent="NOAA geographic image unavailable. Source link and verified dates remain accessible.";$("le-geo-map-status").textContent="WPC map image failed. No forecast contours are inferred."}});
+ const image=root.L.imageOverlay(exportUrl(b,size.x,size.y,layerId),b,{opacity:1,interactive:false});
+ let settled=false;
+ function matches(){return id===viewId&&windowData?.layer===layerId&&windowData?.issuedAt===issued}
+ function failure(reason){
+  if(!matches()||settled)return;
+  settled=true;
+  if(imageTimeout){clearTimeout(imageTimeout);imageTimeout=null}
+  if(map)map.removeLayer(image);
+  if(overlay===image)overlay=null;
+  $("le-geo-map-fallback").hidden=false;
+  $("le-geo-map-fallback").textContent=reason;
+  $("le-geo-map-status").textContent="WPC map image unavailable. No outdated probability contours are shown; use the source link.";
+ }
+ image.on("load",()=>{
+  if(!matches()||settled)return;
+  settled=true;
+  if(imageTimeout){clearTimeout(imageTimeout);imageTimeout=null}
+  $("le-geo-map-fallback").hidden=true;
+  $("le-geo-map-status").textContent="WPC published outlines: blue 10–39%, green 40–69%, red ≥70%. Tap the map to inspect a point.";
+ });
+ image.on("error",()=>failure("NOAA geographic image unavailable. The official WPC source link remains available."));
+ // The NOAA image endpoint can stall without load/error. Avoid an endless spinner.
+ imageTimeout=setTimeout(()=>failure("The official WPC map did not load in time. Choose another forecast window or open the WPC outlook."),12000);
  overlay=image;image.addTo(map);
 }
 async function probe(){
  if(!point||!windowData)return;
- const seq=++pointId,p={...point},d=day,t=threshold,layer=windowData.layer;
+ const seq=++pointId,p={...point},d=day,t=threshold,layer=windowData.layer,selectedId=primary?.id;
  $("le-geo-probe").textContent="Checking the official ≥"+t+" inch probability contour at "+p.lat.toFixed(3)+", "+p.lon.toFixed(3)+"…";
  try{
   const x=await getJson(API+"?mode=point&day="+d+"&threshold="+t+"&lat="+p.lat.toFixed(5)+"&lon="+p.lon.toFixed(5));
-  if(seq!==pointId||d!==day||t!==threshold||layer!==windowData?.layer)return;
+  if(seq!==pointId||d!==day||t!==threshold||layer!==windowData?.layer||p.selected&&primary?.id!==selectedId)return;
   if(x?.status!=="verified"||x.layer!==layer||x.issuedAt!==windowData.issuedAt||x.validStart!==windowData.validStart||!x.risk)throw Error("The location query could not be matched to this issued forecast");
   const label=p.selected?(primary?.name||"Selected snowbelt"):"Chosen map location";
   const text=(x.risk.insidePublishedContour?x.risk.label:"No ≥10% contour mapped here")+" for ≥"+t+" inches in this 24-hour WPC window. ";
   $("le-geo-probe").textContent=label+": "+text+(x.risk.insidePublishedContour?"This is a published accumulation probability, not a prediction of an hourly lake-effect band.":"No contour does not mean no snow or safe conditions.");
- }catch{if(seq===pointId)$("le-geo-probe").textContent="The selected point cannot be verified against this WPC issuance. Do not infer zero snow or zero probability."}
+ }catch{if(seq===pointId&&d===day&&t===threshold&&layer===windowData?.layer)$("le-geo-probe").textContent="The selected point cannot be verified against this WPC issuance. Do not infer zero snow or zero probability."}
 }
 async function leaflet(){
  if(root.L?.map)return;
