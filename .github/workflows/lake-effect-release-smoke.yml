@@ -15,6 +15,9 @@ on:
       - "public/assets/lake-effect.js"
       - "public/assets/lake-effect-explainer.js"
       - "public/assets/lake-effect-radar.js"
+      - "public/assets/lake-effect-time-lens.js"
+      - "public/assets/lake-effect-time-lens.css"
+      - "tests/lake-effect-time-lens.test.js"
       - "tests/lake-effect-radar.test.js"
       - "tests/lake-effect-hardening.test.js"
       - "tests/lake-effect-history.test.js"
@@ -64,3 +67,11 @@ jobs:
         run: |
           echo "CHROME_PATH=$(command -v google-chrome || command -v chromium || command -v chromium-browser)" >> "$GITHUB_ENV"
           node scripts/lake-effect-browser-smoke.cjs
+      - name: Preserve viewport screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lake-effect-time-lens-viewports
+          path: artifacts/lake-effect-lens/*.png
+          if-no-files-found: ignore
+          retention-days: 7

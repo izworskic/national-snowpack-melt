@@ -10,7 +10,7 @@ function fixture(id){return {status:"ok",region:REGIONS.find(r=>r.id===id)||REGI
  verdict:{headline:"Forecast change likely later",impact:"Watch changing conditions",confidence:"medium",timing_window:"12–24 hours",first_12h:{overlap_hours:0,valid_hours:12},official_warning:id==="ny-tug-hill",data_ok:id!=="mi-traverse"},
  observed_snowfall:id==="mi-marquette"?{status:"reported_nearby",label:"Nearby snowfall reported",detail:"Dated observations within 50 km.",source:"https://mesonet.agron.iastate.edu/geojson/lsr.geojson?wfos=MQT",reports:[{time:ts(-3),city:"4 NW Sands",amount_in:6.9,distance_km:12,source_name:"CO-OP Observer"}]}:{status:"unverified",detail:"No qualifying snow reports; this does not mean no snow fell.",reports:[],source:"https://mesonet.agron.iastate.edu/geojson/lsr.geojson?wfos=BUF"},
  upper_air:{status:id==="mi-gaylord"?"stale":"available",issued_at:ts(-6),current:{valid_at:ts(0),temp_850_c:-10,wind_850_from_deg:310,wind_925_from_deg:320,shear_925_850_deg:10,delta_t_c:15,instability_screen:"favorable-contrast",shear_screen:"modest-turning"},forecast:[0,6,12,18,24,36,48,60,72].map((h,i)=>({valid_at:ts(h),temp_850_c:-10+i,wind_850_from_deg:310-i*3,wind_925_from_deg:320,shear_925_850_deg:10+i*4,delta_t_c:15-i}))},
- hours:id==="mi-traverse"?hours.slice(0,3):hours,sources:{nws_hourly:"https://api.weather.gov/points/46,-87",nws_alerts:"https://api.weather.gov/alerts/active"},
+ hours:id==="mi-traverse"?hours.slice(0,3):id==="ny-oswego"?hours.map(h=>({...h,forecast_snow:false,short_forecast:"Cloudy",evidence:"wind-only"})):hours,sources:{nws_hourly:"https://api.weather.gov/points/46,-87",nws_alerts:"https://api.weather.gov/alerts/active"},
  limitations:["No exact band-position forecast."]};}
 const root=path.resolve(__dirname,"../public");
 const server=http.createServer((req,res)=>{
@@ -21,15 +21,15 @@ const server=http.createServer((req,res)=>{
   if(u.searchParams.get("region")==="ny-buffalo"){res.statusCode=503;return res.end(JSON.stringify({status:"unavailable"}));}
   return res.end(JSON.stringify(fixture(u.searchParams.get("region"))));
  }
- const file=u.pathname==="/assets/lake-effect.js"?"assets/lake-effect.js":u.pathname==="/assets/lake-effect-explainer.js"?"assets/lake-effect-explainer.js":u.pathname==="/assets/lake-effect-radar.js"?"assets/lake-effect-radar.js":"lake-effect-snow/index.html";
- res.setHeader("Content-Type",file.endsWith(".js")?"text/javascript":"text/html");
+ const file=u.pathname==="/assets/lake-effect.js"?"assets/lake-effect.js":u.pathname==="/assets/lake-effect-explainer.js"?"assets/lake-effect-explainer.js":u.pathname==="/assets/lake-effect-radar.js"?"assets/lake-effect-radar.js":u.pathname==="/assets/lake-effect-time-lens.js"?"assets/lake-effect-time-lens.js":u.pathname==="/assets/lake-effect-time-lens.css"?"assets/lake-effect-time-lens.css":"lake-effect-snow/index.html";
+ res.setHeader("Content-Type",file.endsWith(".js")?"text/javascript":file.endsWith(".css")?"text/css":"text/html");
  fs.createReadStream(path.join(root,file)).pipe(res);
 });
 (async()=>{
  await new Promise(ok=>server.listen(0,"127.0.0.1",ok));
  const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||"/usr/bin/google-chrome",headless:true,args:["--no-sandbox"]});
  try{
- for(const width of [390,1280]){
+ for(const width of [360,390,768,1280]){
   const context=await browser.newContext({viewport:{width,height:800},permissions:[]});
   const page=await context.newPage(),errors=[];
   page.on("pageerror",e=>errors.push(e.message));
@@ -93,6 +93,43 @@ const server=http.createServer((req,res)=>{
   assert.match(await page.locator("#story-model-note").innerText(),/not interpolated hourly/);
   assert.match(await page.locator("#upper-air-model").innerText(),/15°C/);
   assert.match(await page.locator("#upper-air-model").innerText(),/850-mb air/);
+  // EXPERIENCE_OS time lens: exact forecast hour, second NWS point, keyboard and map.
+  await page.locator("#le-lens-select").waitFor({state:"visible"});
+  await page.locator("#le-lens-select").selectOption("ny-oswego");
+  await page.waitForFunction(()=>document.getElementById("le-lens-b-name").textContent.includes("Oswego"));
+  await page.locator("#le-lens-slider").focus();
+  for(let i=0;i<6;i++)await page.keyboard.press("ArrowRight");
+  assert.equal(await page.locator("#le-lens-slider").inputValue(),"6");
+  assert.match(await page.locator("#le-lens-heading").innerText(),/Marquette/i);
+  assert.match(await page.locator("#le-lens-b-state").innerText(),/does not forecast snow/i);
+  assert.equal(new URL(page.url()).searchParams.get("lead"),"18");
+  await page.locator("#le-lens-next").click();
+  assert.equal(new URL(page.url()).searchParams.get("lead"),"21");
+  await page.locator("#le-lens-prev").click();
+  await page.locator("#le-lens-play").click();
+  assert.equal(await page.locator("#le-lens-play").innerText(),"Pause forecast");
+  await page.locator("#le-lens-play").click();
+  await page.locator("#le-lens-toggle").click();
+  await page.locator("#le-lens-map .leaflet-map-pane").waitFor({state:"attached",timeout:16000});
+  assert.equal(await page.locator("#le-lens-map .leaflet-interactive").count(),2);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),"Time lens must fit viewport");
+  await page.locator("#le-lens-toggle").click();
+  await page.locator("#le-lens-select").selectOption("mi-traverse");
+  await page.waitForFunction(()=>document.getElementById("le-lens-b-name").textContent.includes("Traverse"));
+  assert.match(await page.locator("#le-lens-heading").innerText(),/unavailable/i);
+  await page.locator("#le-lens-select").selectOption("ny-buffalo");
+  await page.waitForFunction(()=>document.getElementById("le-lens-b-name").textContent.includes("Buffalo"));
+  await page.waitForFunction(()=>document.getElementById("le-lens-heading").textContent.includes("unavailable"));
+  assert.match(await page.locator("#le-lens-b-state").innerText(),/cannot be verified/i);
+  await page.locator("#le-lens-select").selectOption("ny-oswego");
+  await page.waitForFunction(()=>document.getElementById("le-lens-b-state").textContent.toLowerCase().includes("wind"));
+  await page.emulateMedia({reducedMotion:"reduce"});
+  await page.locator("#le-lens-play").click();
+  assert.equal(await page.locator("#le-lens-play").innerText(),"Play forecast");
+  assert.match(await page.locator("#le-lens-map-status").innerText(),/Motion reduced/);
+  await page.emulateMedia({reducedMotion:"no-preference"});
+  fs.mkdirSync(path.join(__dirname,"../artifacts/lake-effect-lens"),{recursive:true});
+  await page.screenshot({path:path.join(__dirname,"../artifacts/lake-effect-lens/lens-"+width+".png"),fullPage:false});
   await page.locator("#radar-load").click();
   await page.waitForFunction(()=>document.getElementById("radar-time").max!=="0",{timeout:18000});
   assert.match(await page.locator("#radar-status").innerText(),/verified MRMS observations/);

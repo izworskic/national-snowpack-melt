@@ -1,0 +1,44 @@
+/* Scoped EXPERIENCE_OS_V1 forecast lens, within existing hourly panel. */
+.le-lens{margin:17px 0 24px;padding:clamp(14px,2.5vw,24px);border:1px solid #b9d6dd;border-radius:13px;background:linear-gradient(160deg,#e9f4f5,#f8fbfc 44%,#fff);color:#223b48}
+.le-lens h4{font:normal clamp(1.34rem,2.6vw,1.8rem)/1.19 Georgia,serif;margin:4px 0 7px;color:#163d51}
+.le-lens p{line-height:1.52}
+.le-lens-kicker{font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#266275;margin:0}
+.le-lens-intro{font-size:.89rem;max-width:75ch;color:#3b5967;margin:5px 0 16px}
+.le-lens-choose{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:13px;align-items:end;margin:0 0 16px}
+.le-lens-choose>div{padding:8px 0}.le-lens-choose strong,.le-lens-choose span{display:block}
+.le-lens-choose strong{font-size:1.04rem}.le-lens-choose label{font-size:.8rem;margin:0}
+.le-lens-choose select{margin-top:4px;max-width:100%;min-height:46px;background:#fff;color:#183c4f}
+.le-lens-small{font-size:.74rem;color:#526b77}
+.le-lens-controls{border:1px solid #bcd6dd;background:#fff;border-radius:11px;padding:12px 15px;margin-bottom:13px}
+.le-lens-controls>div:first-child{display:flex;align-items:baseline;justify-content:space-between;gap:9px;flex-wrap:wrap}
+.le-lens-controls>div:first-child span{font-size:.76rem;color:#496576}
+.le-lens-controls>div:first-child strong{font-size:1.06rem;color:#144e64}
+.le-lens-steps{display:grid;grid-template-columns:auto minmax(70px,1fr) auto auto;gap:8px;align-items:center;margin:12px 0 4px}
+.le-lens button{border-radius:7px;min-height:43px;padding:7px 13px;font-size:.82rem;background:#1b536b;color:#fff;white-space:nowrap}
+.le-lens button:disabled{opacity:.5;cursor:not-allowed}
+.le-lens button:hover:not(:disabled){background:#087d85}
+.le-lens #le-lens-play{background:#c9e8ea;color:#143e50;border:1px solid #84b5c0;font-weight:730}
+.le-lens #le-lens-play:hover{background:#b7dfe4}
+.le-lens input[type=range]{width:100%;min-width:0;accent-color:#087d85;cursor:pointer;min-height:42px}
+.le-lens-ticks{display:flex;justify-content:space-between;gap:6px;color:#5b7280;font-size:.69rem}
+.le-lens-answer{background:#e5f3f5;border-left:4px solid #087d85;padding:13px 15px;border-radius:3px 7px 7px 3px;margin:0 0 13px}
+.le-lens-answer strong{display:block;font:normal 1.18rem/1.3 Georgia,serif;color:#113c4f}
+.le-lens-answer p{font-size:.86rem;margin:6px 0 0}
+.le-lens-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.le-lens-cards article{min-width:0;border:1px solid #cadbe1;background:#fff;border-radius:10px;padding:13px 15px;display:flex;flex-direction:column;gap:6px}
+.le-lens-cards article>span{font-size:.68rem;color:#526b79;font-weight:750;text-transform:uppercase;letter-spacing:.035em}
+.le-lens-cards h5{font-size:1.01rem;line-height:1.3;margin:1px 0;color:#193d51}
+.le-lens-cards article p{font-size:.81rem;margin:0}
+.le-lens-cards [id$="-state"]{border-left:4px solid #778994;padding-left:8px;font-weight:730}
+.le-lens-cards a{font-weight:720;font-size:.79rem;margin-top:auto;min-height:35px;align-content:center}
+.le-lens-map-header{display:flex;align-items:center;justify-content:space-between;gap:14px;border-top:1px solid #c6dbe1;padding-top:15px;margin-top:17px}
+.le-lens-map-header strong{font-size:.92rem}.le-lens-map-header p{font-size:.76rem;color:#526979;margin:2px 0 0}
+.le-lens #le-lens-toggle{color:#17465b;background:#fff;border:1px solid #8bb5c4}
+#le-lens-map-holder[hidden]{display:none}
+#le-lens-map{height:clamp(240px,35vw,365px);width:100%;border-radius:8px;margin-top:12px;background:#d6e1e8;border:1px solid #b4ccd5}
+.le-lens-map-caption,.le-lens-caution{font-size:.77rem;color:#4c6472;line-height:1.5}
+.le-lens-caution{margin:13px 0 0}
+.le-lens :focus-visible{outline:3px solid #cc8519;outline-offset:3px}
+@media(max-width:700px){.le-lens{padding:13px}.le-lens-choose,.le-lens-cards{grid-template-columns:minmax(0,1fr)}.le-lens-steps{grid-template-columns:1fr 1fr 1fr}.le-lens-steps input{grid-column:1/-1;grid-row:1}.le-lens-steps button{padding:8px 5px;white-space:normal}.le-lens-steps #le-lens-play{grid-column:3}.le-lens-ticks{font-size:.62rem}.le-lens-map-header{align-items:flex-start}.le-lens-map-header button{flex-shrink:0}}
+@media(max-width:380px){.le-lens-map-header{flex-direction:column;align-items:stretch}.le-lens-steps{gap:5px}.le-lens-cards article{padding:11px}}
+@media(prefers-reduced-motion:reduce){.le-lens *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
