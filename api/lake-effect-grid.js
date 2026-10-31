@@ -10,7 +10,7 @@ const ELEMENTS=Object.freeze({
  windspd:{label:"Surface wind speed",periodHours:0,periodType:"instantaneous",unit:"knots",description:"NWS/NDFD surface wind speed valid at the selected hour. One knot is approximately 1.15 mph."},
  t:{label:"Air temperature",periodHours:0,periodType:"instantaneous",unit:"°F",description:"NWS/NDFD two-meter air temperature forecast valid at the selected hour."}
 });
-const exactMinute=s=>typeof s==="string"&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)&&new Date(s+":00Z").toISOString().slice(0,16)===s;
+const exactMinute=s=>{if(typeof s!=="string"||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s))return false;const t=Date.parse(s+":00Z");return Number.isFinite(t)&&new Date(t).toISOString().slice(0,16)===s};
 const utcMillis=s=>exactMinute(s)?Date.parse(s+":00Z"):NaN;
 const minute=ms=>new Date(ms).toISOString().slice(0,16);
 function candidateTimes(now){
