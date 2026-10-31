@@ -6,9 +6,9 @@
 const API="/api/lake-effect-grid",WMS="https://digital.weather.gov/ndfd.conus/wms",H=3600000;
 const FIELDS={
  snowamt:{label:"New snow · 6 hours",description:"New snow forecast for the six-hour period ending at this time",opacity:.66,kind:"accumulation"},
- winddir:{label:"Wind direction",description:"Surface wind direction forecast valid at this instant",opacity:.84,kind:"snapshot"},
- windspd:{label:"Wind speed",description:"Surface wind speed forecast in knots, valid at this instant",opacity:.72,kind:"snapshot"},
- t:{label:"Air temperature",description:"Air temperature forecast in °F, valid at this instant",opacity:.7,kind:"snapshot"}
+ winddir:{label:"Wind direction",description:"Surface wind direction forecast valid at this instant",opacity:.84,kind:"instantaneous"},
+ windspd:{label:"Wind speed",description:"Surface wind speed forecast in knots, valid at this instant",opacity:.72,kind:"instantaneous"},
+ t:{label:"Air temperature",description:"Air temperature forecast in °F, valid at this instant",opacity:.7,kind:"instantaneous"}
 };
 const $=id=>document.getElementById(id);
 const fmt=iso=>new Intl.DateTimeFormat(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}).format(new Date(iso));
