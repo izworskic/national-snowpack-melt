@@ -167,6 +167,8 @@ const server=http.createServer((req,res)=>{
   // NDFD grid progression: exact six-hour times and issuance pinned in WMS
   await page.locator("#le-grid").scrollIntoViewIfNeeded();
   await page.locator("#le-grid-time").waitFor({state:"visible"});
+  await page.waitForTimeout(1500);
+  console.log("GRID_DIAG",JSON.stringify({viewport:width,errors,grid:await page.evaluate(()=>({time:document.getElementById("le-grid-time")?.textContent,issue:document.getElementById("le-grid-issue")?.textContent,status:document.getElementById("le-grid-status")?.textContent,script:typeof window.LakeEffectGrid,map:!!document.querySelector("#le-grid-map .leaflet-pane"),fallback:document.getElementById("le-grid-map-fallback")?.textContent,url:location.href}))}));
   await page.waitForFunction(()=>document.getElementById("le-grid-issue")?.textContent.includes("Issued"),{timeout:15000});
   await page.waitForFunction(()=>document.getElementById("le-grid-map-status")?.textContent.includes("image valid"),{timeout:15000});
   assert.match(await page.locator("#le-grid-time").innerText(),/to/);
