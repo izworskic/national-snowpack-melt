@@ -1,0 +1,44 @@
+/* EXPERIENCE_OS_V1 · Scoped geographic forecast progression; no changes to existing tool CSS. */
+.le-geo{color:#1e3a4d;margin:26px 0 30px;padding:clamp(14px,2.5vw,28px);border:1px solid #acc6d1;border-radius:15px;background:linear-gradient(152deg,#edf5f6 0%,#f7faf9 30%,#fff 78%);box-shadow:0 9px 25px rgba(9,51,74,.07);overflow:hidden}
+.le-geo *{box-sizing:border-box}
+.le-geo-kicker{font:800 .68rem/1.5 system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#266980;margin:0 0 8px}
+.le-geo-top{display:flex;gap:18px;justify-content:space-between;align-items:start;margin-bottom:17px}
+.le-geo h3{margin:0 0 8px;font:normal clamp(1.55rem,2.6vw,2.25rem)/1.14 Georgia,serif;color:#163b51;letter-spacing:-.022em}
+.le-geo-intro{max-width:75ch;margin:0;color:#496674;font-size:.92rem;line-height:1.62}
+.le-geo-source{flex-shrink:0;border:1px solid #83b2bd;border-radius:8px;color:#185a6d;background:#fff;padding:10px 13px;text-decoration:underline;font-size:.81rem;font-weight:750;line-height:1.4;max-width:180px}
+.le-geo-source:hover{background:#e1f0f2}
+.le-geo-toolbar{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px;margin:0 0 13px}
+.le-geo-toolbar fieldset{margin:0;min-width:0;padding:12px 13px 13px;background:#fff;border:1px solid #d0dfe4;border-radius:10px}
+.le-geo-toolbar legend{padding:0 5px;color:#355c6c;font-size:.77rem;font-weight:750;line-height:1.4}
+.le-geo-days,.le-geo-thresholds{display:flex;gap:5px;flex-wrap:wrap}
+.le-geo button{cursor:pointer;border:1px solid #adc9d1;border-radius:7px;padding:8px 11px;min-height:42px;background:#eff6f7;color:#215065;font:750 .79rem/1.3 system-ui,sans-serif;transition:background .15s,border-color .15s}
+.le-geo button:hover{background:#d9edf0;border-color:#468ca0}
+.le-geo button:focus-visible,.le-geo-source:focus-visible{outline:3px solid #d39830;outline-offset:2px}
+.le-geo button[aria-pressed=true]{background:#16485e;color:#fff;border-color:#16485e}
+.le-geo #le-geo-play{margin-left:auto;background:#d5eced;color:#20495a;white-space:normal;min-width:96px}
+.le-geo #le-geo-play:hover{background:#c1e1e4}
+.le-geo-focus{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;align-items:center;background:#e7f2f4;border-left:4px solid #12788c;border-radius:8px;padding:12px 15px;margin-bottom:9px}
+.le-geo-focus>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.le-geo-eyebrow{font:.7rem system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:#456b79}
+.le-geo-focus strong{font-size:.97rem;color:#17475b;line-height:1.4}
+.le-geo-focus span[id=le-geo-issue]{font-size:.78rem;color:#53717c;line-height:1.45}
+.le-geo-focus p{font-size:.81rem;color:#365b69;line-height:1.5;margin:0}
+.le-geo-map-shell{position:relative;background:#e6eff0;border:1px solid #b5cbd1;border-radius:11px;overflow:hidden;isolation:isolate}
+.le-geo #le-geo-map{height:clamp(315px,44vw,485px);min-height:315px;z-index:1}
+.le-geo-map-fallback{position:absolute;z-index:2;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;pointer-events:none;background:rgba(236,245,246,.76);color:#35576b;font-weight:700;font-size:.9rem}
+.le-geo-map-fallback[hidden]{display:none}
+.le-geo .leaflet-control-container{font-family:system-ui,sans-serif}
+.le-geo .leaflet-container{background:#dce9eb}
+.le-geo-map-actions{display:flex;align-items:center;gap:12px;justify-content:space-between;margin:9px 0 10px}
+.le-geo-map-actions span{font-size:.77rem;color:#57717a;line-height:1.5;text-align:right}
+.le-geo #le-geo-home{background:#fff;font-size:.75rem;flex-shrink:0}
+.le-geo-legend{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:12px 0 10px;padding:10px 12px;border:1px solid #cbdde2;background:#fff;border-radius:9px}
+.le-geo-legend>span{display:flex;align-items:center;gap:7px;font-size:.76rem;color:#3b5a67;white-space:normal}
+.le-geo-swatch{display:inline-block;width:21px;height:15px;border:2px solid transparent;border-radius:3px;background:#f8fbfc}
+.le-geo-slight{border-color:#0000ff}.le-geo-moderate{border-color:#008b00}.le-geo-high{border-color:#f00}
+.le-geo-probe{background:#eef5f7;border:1px solid #bed7de;border-radius:9px;padding:12px 14px;color:#1a5267;font-size:.87rem;line-height:1.55;min-height:52px}
+.le-geo-caution{color:#4b6571;font-size:.8rem;line-height:1.65;margin:13px 0 0}
+.le-geo-caution strong{color:#23495a}
+@media(max-width:800px){.le-geo-top{flex-direction:column;gap:11px}.le-geo-source{max-width:none}.le-geo-toolbar{grid-template-columns:1fr}.le-geo-focus{grid-template-columns:1fr;gap:9px}.le-geo-focus p{border-top:1px solid #c4d9df;padding-top:8px}.le-geo #le-geo-map{height:370px}.le-geo #le-geo-play{margin-left:0}}
+@media(max-width:420px){.le-geo{padding:13px}.le-geo h3{font-size:1.53rem}.le-geo-days{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.le-geo #le-geo-play{grid-column:1/-1}.le-geo-days button,.le-geo-thresholds button{padding:7px 6px}.le-geo-thresholds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.le-geo-map-actions{align-items:flex-start;flex-direction:column}.le-geo-map-actions span{text-align:left}.le-geo #le-geo-map{height:335px}.le-geo-legend{gap:10px}}
+@media(prefers-reduced-motion:reduce){.le-geo *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
