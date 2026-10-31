@@ -122,7 +122,7 @@ const server=http.createServer((req,res)=>{
   await page.waitForFunction(()=>document.getElementById("le-lens-heading").textContent.includes("unavailable"));
   assert.match(await page.locator("#le-lens-b-state").innerText(),/cannot be verified/i);
   await page.locator("#le-lens-select").selectOption("ny-oswego");
-  await page.waitForFunction(()=>document.getElementById("le-lens-b-state").textContent.includes("wind"));
+  await page.waitForFunction(()=>document.getElementById("le-lens-b-state").textContent.toLowerCase().includes("wind"));
   await page.emulateMedia({reducedMotion:"reduce"});
   await page.locator("#le-lens-play").click();
   assert.equal(await page.locator("#le-lens-play").innerText(),"Play forecast");
