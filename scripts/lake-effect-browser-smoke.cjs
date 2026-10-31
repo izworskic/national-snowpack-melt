@@ -29,7 +29,7 @@ const server=http.createServer((req,res)=>{
  await new Promise(ok=>server.listen(0,"127.0.0.1",ok));
  const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||"/usr/bin/google-chrome",headless:true,args:["--no-sandbox"]});
  try{
- for(const width of [390,1280]){
+ for(const width of [360,390,768,1280]){
   const context=await browser.newContext({viewport:{width,height:800},permissions:[]});
   const page=await context.newPage(),errors=[];
   page.on("pageerror",e=>errors.push(e.message));
@@ -117,7 +117,19 @@ const server=http.createServer((req,res)=>{
   await page.locator("#le-lens-select").selectOption("mi-traverse");
   await page.waitForFunction(()=>document.getElementById("le-lens-b-name").textContent.includes("Traverse"));
   assert.match(await page.locator("#le-lens-heading").innerText(),/unavailable/i);
+  await page.locator("#le-lens-select").selectOption("ny-buffalo");
+  await page.waitForFunction(()=>document.getElementById("le-lens-b-name").textContent.includes("Buffalo"));
+  await page.waitForFunction(()=>document.getElementById("le-lens-heading").textContent.includes("unavailable"));
+  assert.match(await page.locator("#le-lens-b-state").innerText(),/cannot be verified/i);
   await page.locator("#le-lens-select").selectOption("ny-oswego");
+  await page.waitForFunction(()=>document.getElementById("le-lens-b-state").textContent.includes("wind"));
+  await page.emulateMedia({reducedMotion:"reduce"});
+  await page.locator("#le-lens-play").click();
+  assert.equal(await page.locator("#le-lens-play").innerText(),"Play forecast");
+  assert.match(await page.locator("#le-lens-map-status").innerText(),/Motion reduced/);
+  await page.emulateMedia({reducedMotion:"no-preference"});
+  fs.mkdirSync(path.join(__dirname,"../artifacts/lake-effect-lens"),{recursive:true});
+  await page.screenshot({path:path.join(__dirname,"../artifacts/lake-effect-lens/lens-"+width+".png"),fullPage:false});
   await page.locator("#radar-load").click();
   await page.waitForFunction(()=>document.getElementById("radar-time").max!=="0",{timeout:18000});
   assert.match(await page.locator("#radar-status").innerText(),/verified MRMS observations/);
