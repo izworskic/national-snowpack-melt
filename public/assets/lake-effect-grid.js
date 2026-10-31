@@ -164,8 +164,10 @@ function draw(){
  $("le-grid-map-fallback").hidden=false;$("le-grid-map-fallback").textContent="Loading verified NOAA frame…";
  $("le-grid-map-status").textContent="Requesting official NDFD "+FIELDS[field].label+" image for "+short(f.validAt)+".";
  const layer=root.L.imageOverlay(wmsUrl(b,size,f),b,{opacity:FIELDS[field].opacity,interactive:false});
+ let settled=false;
  function failed(reason){
-  if(id!==imageSeq)return;
+  if(id!==imageSeq||settled)return;
+  settled=true;
   if(imageTimer){clearTimeout(imageTimer);imageTimer=null}
   stop();if(map)map.removeLayer(layer);if(overlay===layer)overlay=null;
   $("le-grid-map-fallback").hidden=false;
@@ -173,7 +175,8 @@ function draw(){
   $("le-grid-map-status").textContent="No image substituted. Choose another verified time or open the official NWS maps.";
  }
  layer.on("load",()=>{
-  if(id!==imageSeq||!current)return;
+  if(id!==imageSeq||!current||settled)return;
+  settled=true;
   if(imageTimer){clearTimeout(imageTimer);imageTimer=null}
   $("le-grid-map-fallback").hidden=true;
   $("le-grid-map-status").textContent="NOAA/NWS gridded "+FIELDS[field].label.toLowerCase()+" · Forecast image valid "+short(f.validAt)+". Map colors belong to the published NWS layer.";
