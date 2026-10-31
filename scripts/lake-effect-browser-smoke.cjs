@@ -15,13 +15,23 @@ function fixture(id){return {status:"ok",region:REGIONS.find(r=>r.id===id)||REGI
 const root=path.resolve(__dirname,"../public");
 const server=http.createServer((req,res)=>{
  const u=new URL(req.url,"http://localhost");
+ if(u.pathname==="/api/lake-effect-geography"){
+  const day=Number(u.searchParams.get("day")||1),threshold=Number(u.searchParams.get("threshold")||4);
+  res.setHeader("Content-Type","application/json");
+  const start=new Date(now+(4+(day-1)*24)*3600000).toISOString(),end=new Date(now+(28+(day-1)*24)*3600000).toISOString();
+  const info={status:"verified",day,thresholdInches:threshold,layer:{1:{4:1,8:2,12:3},2:{4:6,8:7,12:8},3:{4:11,8:12,12:13}}[day][threshold],
+   issuedAt:ts(-2),validStart:start,validEnd:end,retrievedAt:ts(0),validity:"24-hour accumulation window",
+   source:{agency:"NOAA/NWS Weather Prediction Center",url:"https://www.wpc.ncep.noaa.gov/wwd/winter_wx.shtml"}};
+  if(u.searchParams.get("mode")==="point")info.risk={code:1,label:"Slight: 10–39%",insidePublishedContour:true};
+  return res.end(JSON.stringify(info));
+ }
  if(u.pathname==="/api/lake-effect"){
   res.setHeader("Content-Type","application/json");
   if(u.searchParams.has("list"))return res.end(JSON.stringify({regions:REGIONS}));
   if(u.searchParams.get("region")==="ny-buffalo"){res.statusCode=503;return res.end(JSON.stringify({status:"unavailable"}));}
   return res.end(JSON.stringify(fixture(u.searchParams.get("region"))));
  }
- const file=u.pathname==="/assets/lake-effect.js"?"assets/lake-effect.js":u.pathname==="/assets/lake-effect-explainer.js"?"assets/lake-effect-explainer.js":u.pathname==="/assets/lake-effect-radar.js"?"assets/lake-effect-radar.js":u.pathname==="/assets/lake-effect-time-lens.js"?"assets/lake-effect-time-lens.js":u.pathname==="/assets/lake-effect-time-lens.css"?"assets/lake-effect-time-lens.css":"lake-effect-snow/index.html";
+ const file=u.pathname==="/assets/lake-effect.js"?"assets/lake-effect.js":u.pathname==="/assets/lake-effect-explainer.js"?"assets/lake-effect-explainer.js":u.pathname==="/assets/lake-effect-radar.js"?"assets/lake-effect-radar.js":u.pathname==="/assets/lake-effect-time-lens.js"?"assets/lake-effect-time-lens.js":u.pathname==="/assets/lake-effect-time-lens.css"?"assets/lake-effect-time-lens.css":u.pathname==="/assets/lake-effect-geography.js"?"assets/lake-effect-geography.js":u.pathname==="/assets/lake-effect-geography.css"?"assets/lake-effect-geography.css":"lake-effect-snow/index.html";
  res.setHeader("Content-Type",file.endsWith(".js")?"text/javascript":file.endsWith(".css")?"text/css":"text/html");
  fs.createReadStream(path.join(root,file)).pipe(res);
 });
@@ -49,7 +59,7 @@ const server=http.createServer((req,res)=>{
     const now=Date.now(),isStale=u.searchParams.get("geometry")==="-84.67,45.03";
     const stamps=Array.from({length:11},(_,i)=>now-(isStale?480:110-i*10)*60000);
     await route.fulfill({status:200,contentType:"application/json",headers:{"access-control-allow-origin":"*"},body:JSON.stringify({features:stamps.map(t=>({attributes:{idp_validtime:t,idp_filedate:t+30000}}))})});
-   }else if(u.pathname.endsWith("/exportImage")){
+   }else if((u.pathname.endsWith("/exportImage")||u.pathname.endsWith("/export"))){
     await route.fulfill({status:200,contentType:"image/png",headers:{"access-control-allow-origin":"*"},body:Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==","base64")});
    }else await route.continue();
   });
@@ -130,6 +140,43 @@ const server=http.createServer((req,res)=>{
   await page.emulateMedia({reducedMotion:"no-preference"});
   fs.mkdirSync(path.join(__dirname,"../artifacts/lake-effect-lens"),{recursive:true});
   await page.screenshot({path:path.join(__dirname,"../artifacts/lake-effect-lens/lens-"+width+".png"),fullPage:false});
+  // WPC map: official day/threshold layers, point checks, reduced-motion, fail closed.
+  await page.locator("#le-geo").scrollIntoViewIfNeeded();
+  await page.waitForFunction(()=>document.getElementById("le-geo-valid")?.textContent.includes("to"),{timeout:15000});
+  assert.match(await page.locator("#le-geo-issue").innerText(),/Weather Prediction Center/);
+  await page.locator("#le-geo-map .leaflet-map-pane").waitFor({state:"attached",timeout:15000});
+  await page.locator("#le-geo-map .leaflet-image-layer").waitFor({state:"attached",timeout:15000});
+  assert.match(await page.locator("#le-geo-probe").innerText(),/Slight: 10–39%/);
+  await page.locator('[data-geo-day="2"]').click();
+  await page.waitForFunction(()=>document.getElementById("le-geo-issue").textContent.includes("Day 2"));
+  assert.equal(new URL(page.url()).searchParams.get("geoDay"),"2");
+  await page.locator('[data-geo-inches="8"]').click();
+  await page.waitForFunction(()=>document.getElementById("le-geo-issue").textContent.includes("≥8 inches"));
+  assert.equal(new URL(page.url()).searchParams.get("geoSnow"),"8");
+  assert.equal(await page.locator('[data-geo-day="2"]').getAttribute("aria-pressed"),"true");
+  assert.ok((await page.locator("#le-geo-map .leaflet-image-layer").getAttribute("src")).includes("layers=show%3A7"),"Day 2 >=8 inches must use WPC layer 7");
+  await page.locator("#le-geo-home").click();
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),"Geographic outlook must fit viewport");
+  await page.emulateMedia({reducedMotion:"reduce"});
+  await page.locator("#le-geo-play").click();
+  assert.equal(await page.locator("#le-geo-play").innerText(),"Play progression");
+  assert.match(await page.locator("#le-geo-status").innerText(),/Reduced motion/);
+  await page.emulateMedia({reducedMotion:"no-preference"});
+  await page.locator("#le-geo-play").click();
+  assert.equal(await page.locator("#le-geo-play").innerText(),"Pause progression");
+  await page.locator("#le-geo-play").click();
+  await page.locator("#le-geo").screenshot({path:path.join(__dirname,"../artifacts/lake-effect-lens/geography-"+width+".png")});
+  await page.route("**/api/lake-effect-geography?**",async route=>{
+   if(route.request().url().includes("day=3")&&route.request().url().includes("threshold=12"))
+    return route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({status:"unavailable"})});
+   return route.continue();
+  });
+  await page.locator('[data-geo-day="3"]').click();
+  await page.locator('[data-geo-inches="12"]').click();
+  await page.waitForFunction(()=>document.getElementById("le-geo-valid").textContent.includes("unavailable"),{timeout:12000});
+  assert.equal(await page.locator("#le-geo-map .leaflet-image-layer").count(),0,"Stale outlook must be removed");
+  assert.match(await page.locator("#le-geo-probe").innerText(),/No probability is inferred/);
+  await page.unroute("**/api/lake-effect-geography?**");
   await page.locator("#radar-load").click();
   await page.waitForFunction(()=>document.getElementById("radar-time").max!=="0",{timeout:18000});
   assert.match(await page.locator("#radar-status").innerText(),/verified MRMS observations/);
