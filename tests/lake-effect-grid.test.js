@@ -52,3 +52,16 @@ test("Map source never interpolates and existing canonical WPC/radar remain",()=
  assert.match(main,/LakeEffectGrid\?\.render/);
  assert.match(html,/rel="canonical" href="https:\/\/chrisizworski\.com\/lake-effect-snow\/"/);
 });
+
+test("Browser strictly accepts verified accumulation and instantaneous grids for every field",()=>{
+ const client=require("../public/assets/lake-effect-grid.js");
+ const live=Date.now(),first=Math.ceil(live/SIX)*SIX,issuedAt=new Date(live-3600000).toISOString();
+ for(const element of Object.keys(ELEMENTS)){
+  const frames=Array.from({length:8},(_,i)=>{
+   const validAt=new Date(first+i*SIX).toISOString();
+   return {validAt,issuedAt,vTIT:validAt.slice(0,16)+"_"+issuedAt.slice(0,16),
+    periodStart:element==="snowamt"?new Date(Date.parse(validAt)-SIX).toISOString():null};
+  });
+  assert.equal(client.validInventory({status:"verified",element,periodType:element==="snowamt"?"accumulation":"instantaneous",frames},element),true,element);
+ }
+});
