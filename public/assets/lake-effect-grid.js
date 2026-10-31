@@ -99,9 +99,9 @@ async function load(){
   if(!validInventory(d,e))throw Error("Published valid times or issuance information could not be confirmed");
   current=d;
   const requested=new URL(root.location.href).searchParams.get("gridAt");
-  const saved=requested&&d.frames.findIndex(f=>f.validAt.slice(0,16)===requested);
-  const previousIndex=previous&&d.frames.findIndex(f=>f.validAt===previous);
-  idx=(saved!==null&&saved!==undefined&&saved>=0)?saved:previousIndex>=0?previousIndex:0;
+  const savedIndex=requested?d.frames.findIndex(f=>f.validAt.slice(0,16)===requested):-1;
+  const previousIndex=previous?d.frames.findIndex(f=>f.validAt===previous):-1;
+  idx=savedIndex>=0?savedIndex:previousIndex>=0?previousIndex:0;
   $("le-grid-slider").max=String(Math.max(0,d.frames.length-1));$("le-grid-slider").disabled=d.frames.length<2;
   $("le-grid-first").textContent=short(d.frames[0].validAt);$("le-grid-last").textContent=short(d.frames[d.frames.length-1].validAt);
   $("le-grid-status").textContent=d.frames.length+" exact forecast times verified by NOAA. "+(d.unavailableSlots?"Some requested time steps are not published; gaps are never filled.":"Every checked time step is published.");
