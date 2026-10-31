@@ -32,7 +32,7 @@ test("map and site truth is explicit",()=>{
  const js=readFileSync(join(__dirname,"../public/assets/lake-effect-geography.js"),"utf8");
  const html=readFileSync(join(__dirname,"../public/lake-effect-snow/index.html"),"utf8");
  const main=readFileSync(join(__dirname,"../public/assets/lake-effect.js"),"utf8");
- assert.match(js,/WPC published probability/);
+ assert.match(js,/WPC published outlines/);
  assert.match(js,/not hourly snowbands/);
  assert.match(js,/validWindow/);
  assert.match(js,/mapService|NOAA|MapServer/);
