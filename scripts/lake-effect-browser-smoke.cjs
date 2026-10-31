@@ -167,9 +167,7 @@ const server=http.createServer((req,res)=>{
   // NDFD grid progression: exact six-hour times and issuance pinned in WMS
   await page.locator("#le-grid").scrollIntoViewIfNeeded();
   await page.locator("#le-grid-time").waitFor({state:"visible"});
-  await page.waitForTimeout(1500);
-  console.log("GRID_DIAG",JSON.stringify({viewport:width,errors,gridRequests:gridRequests.map(x=>x.href).slice(-3),grid:await page.evaluate(()=>({time:document.getElementById("le-grid-time")?.textContent,issue:document.getElementById("le-grid-issue")?.textContent,status:document.getElementById("le-grid-status")?.textContent,mapStatus:document.getElementById("le-grid-map-status")?.textContent,script:typeof window.LakeEffectGrid,map:!!document.querySelector("#le-grid-map .leaflet-pane"),images:[...document.querySelectorAll("#le-grid-map img.leaflet-image-layer")].map(x=>({src:x.src,complete:x.complete,width:x.naturalWidth})),fallback:document.getElementById("le-grid-map-fallback")?.textContent,url:location.href}))}));
-  await page.waitForFunction(()=>document.getElementById("le-grid-issue")?.textContent.includes("Issued"),{timeout:15000});
+  await page.waitForFunction(()=>document.getElementById("le-grid-issue")?.textContent.includes("Issued"),null,{timeout:15000});
   await page.waitForFunction(()=>document.getElementById("le-grid-map-status")?.textContent.includes("image valid"),null,{timeout:12000});
   assert.match(await page.locator("#le-grid-time").innerText(),/to/);
   assert.match(await page.locator("#le-grid-status").innerText(),/10 exact forecast times verified/);
@@ -182,17 +180,17 @@ const server=http.createServer((req,res)=>{
   assert.ok(new URL(page.url()).searchParams.get("gridAt"),"Deep link stores exact verified time");
   assert.ok(gridRequests.some(u=>u.searchParams.get("VTIT")?.includes("_")),"WMS image must be issuance pinned");
   await page.locator("#le-grid-layer").selectOption("winddir");
-  await page.waitForFunction(()=>document.getElementById("le-grid-issue").textContent.includes("Surface wind direction"),{timeout:15000});
+  await page.waitForFunction(()=>document.getElementById("le-grid-issue").textContent.includes("Surface wind direction"),null,{timeout:15000});
   assert.doesNotMatch(await page.locator("#le-grid-time").innerText(),/ to /);
   assert.equal(new URL(page.url()).searchParams.get("gridField"),"winddir");
-  await page.waitForFunction(()=>document.getElementById("le-grid-map-status").textContent.includes("image valid"),{timeout:15000});
+  await page.waitForFunction(()=>document.getElementById("le-grid-map-status").textContent.includes("image valid"),null,{timeout:15000});
   assert.ok(gridRequests.some(u=>u.searchParams.get("LAYERS")==="ndfd.conus.winddir"));
   await page.locator("#le-grid-layer").selectOption("t");
-  await page.waitForFunction(()=>document.getElementById("le-grid-issue").textContent.includes("Air temperature"),{timeout:15000});
-  await page.waitForFunction(()=>document.getElementById("le-grid-map-status").textContent.includes("image valid"),{timeout:15000});
+  await page.waitForFunction(()=>document.getElementById("le-grid-issue").textContent.includes("Air temperature"),null,{timeout:15000});
+  await page.waitForFunction(()=>document.getElementById("le-grid-map-status").textContent.includes("image valid"),null,{timeout:15000});
   assert.ok(gridRequests.some(u=>u.searchParams.get("LAYERS")==="ndfd.conus.t"));
   await page.locator("#le-grid-layer").selectOption("snowamt");
-  await page.waitForFunction(()=>document.getElementById("le-grid-issue").textContent.includes("Six-hour new snowfall"),{timeout:15000});
+  await page.waitForFunction(()=>document.getElementById("le-grid-issue").textContent.includes("Six-hour new snowfall"),null,{timeout:15000});
   await page.locator("#le-grid-next").click();
   assert.equal(new URL(page.url()).searchParams.get("gridField"),"snowamt");
   await page.locator("#le-grid-overview").click();
@@ -211,7 +209,7 @@ const server=http.createServer((req,res)=>{
    return route.continue();
   });
   await page.locator("#le-grid-layer").selectOption("windspd");
-  await page.waitForFunction(()=>document.getElementById("le-grid-time").textContent.includes("unavailable"),{timeout:14000});
+  await page.waitForFunction(()=>document.getElementById("le-grid-time").textContent.includes("unavailable"),null,{timeout:14000});
   assert.equal(await page.locator("#le-grid-map .leaflet-image-layer").count(),0,"Stale NDFD image must be removed after outage");
   assert.match(await page.locator("#le-grid-status").innerText(),/No gridded map is displayed/);
   await page.unroute("**/api/lake-effect-grid?**");
