@@ -137,6 +137,7 @@ function render(d){
  hours(d.hours||[]);
  if(window.LakeEffectExplainer?.render)window.LakeEffectExplainer.render(d);
  if(window.LakeEffectRadar?.render)window.LakeEffectRadar.render(d);
+  if(window.LakeEffectTimeLens?.render)window.LakeEffectTimeLens.render(d);
  $("dashboard").hidden=false;
 }
 async function selectRegion(id){
