@@ -46,6 +46,7 @@ async function sourceJson(url,timeout=6500){
 function interpretPoint(features){
  if(!Array.isArray(features))return null;
  const valid=features.map(x=>Number(x?.attributes?.dn)).filter(x=>Number.isInteger(x)&&x>=0&&x<=3);
+ if(features.length&&!valid.length)return null;
  const code=valid.length?Math.max(...valid):0;
  return {...CATEGORIES[code],insidePublishedContour:code>=1,
   observed:false,geographicResolution:"WPC published probability polygon"};
@@ -67,7 +68,9 @@ async function handler(req,res){
   const [sample,point]=await Promise.all([sourceJson(requestParams(layer)),geometry?sourceJson(requestParams(layer,geometry)):Promise.resolve(null)]);
   const window=decodeWindow(sample,day,threshold);
   if(!window){responseHeaders(res,false);return res.status(503).json({status:"unavailable",error:"WPC issuance or 24-hour validity is stale or cannot be verified"})}
-  const data=geometry?{...window,point:{lat:Number(req.query.lat),lon:Number(req.query.lon)},risk:interpretPoint(point)}:window;
+  const risk=geometry?interpretPoint(point):null;
+  if(geometry&&!risk)throw Error("WPC probability category malformed");
+  const data=geometry?{...window,point:{lat:Number(req.query.lat),lon:Number(req.query.lon)},risk}:window;
   responseHeaders(res,true);return res.status(200).json(data);
  }catch(e){responseHeaders(res,false);return res.status(503).json({status:"unavailable",error:"Official WPC geographic forecast unavailable; existing NWS hourly forecast remains usable"})}
 }
