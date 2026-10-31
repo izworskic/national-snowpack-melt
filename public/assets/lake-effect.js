@@ -138,6 +138,7 @@ function render(d){
  if(window.LakeEffectExplainer?.render)window.LakeEffectExplainer.render(d);
  if(window.LakeEffectRadar?.render)window.LakeEffectRadar.render(d);
   if(window.LakeEffectTimeLens?.render)window.LakeEffectTimeLens.render(d);
+ if(window.LakeEffectGrid?.render)window.LakeEffectGrid.render(d);
  if(window.LakeEffectGeography?.render)window.LakeEffectGeography.render(d);
  $("dashboard").hidden=false;
 }

@@ -22,6 +22,11 @@ on:
       - "api/lake-effect-geography.js"
       - "tests/lake-effect-geography.test.js"
       - "scripts/lake-effect-wpc-live-smoke.cjs"
+      - "scripts/lake-effect-grid-live-smoke.cjs"
+      - "api/lake-effect-grid.js"
+      - "public/assets/lake-effect-grid.js"
+      - "public/assets/lake-effect-grid.css"
+      - "tests/lake-effect-grid.test.js"
       - "tests/lake-effect-time-lens.test.js"
       - "tests/lake-effect-radar.test.js"
       - "tests/lake-effect-hardening.test.js"
@@ -58,6 +63,8 @@ jobs:
         run: node scripts/lake-effect-live-smoke.cjs
       - name: Verify live WPC snowfall probability windows and issue provenance
         run: node scripts/lake-effect-wpc-live-smoke.cjs
+      - name: Verify exact-valid-time NOAA NDFD snow and wind forecast grids
+        run: node scripts/lake-effect-grid-live-smoke.cjs
   browser:
     runs-on: ubuntu-latest
     timeout-minutes: 8

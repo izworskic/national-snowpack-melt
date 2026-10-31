@@ -15,6 +15,21 @@ function fixture(id){return {status:"ok",region:REGIONS.find(r=>r.id===id)||REGI
 const root=path.resolve(__dirname,"../public");
 const server=http.createServer((req,res)=>{
  const u=new URL(req.url,"http://localhost");
+ if(u.pathname==="/api/lake-effect-grid"){
+  res.setHeader("Content-Type","application/json");
+  const element=u.searchParams.get("element")||"snowamt";
+  const H=3600000,SIX=6*H,start=Math.ceil(now/SIX)*SIX,issuedAt=ts(-1),fields={
+   snowamt:{label:"Six-hour new snowfall",kind:"accumulation",period:6},
+   winddir:{label:"Surface wind direction",kind:"instantaneous",period:0},
+   windspd:{label:"Surface wind speed",kind:"instantaneous",period:0},
+   t:{label:"Air temperature",kind:"instantaneous",period:0}
+  };
+  const fld=fields[element];if(!fld){res.statusCode=400;return res.end(JSON.stringify({status:"unavailable"}))}
+  const frames=Array.from({length:10},(_,i)=>{const validAt=new Date(start+i*SIX).toISOString();return{
+   validAt,issuedAt,vTIT:validAt.slice(0,16)+"_"+issuedAt.slice(0,16),periodStart:fld.period?new Date(Date.parse(validAt)-SIX).toISOString():null
+  }});
+  return res.end(JSON.stringify({status:"verified",element,label:fld.label,periodType:fld.kind,validPeriodHours:fld.period,frames,checkedSlots:12,unavailableSlots:2,retrievedAt:ts(0)}));
+ }
  if(u.pathname==="/api/lake-effect-geography"){
   const day=Number(u.searchParams.get("day")||1),threshold=Number(u.searchParams.get("threshold")||4);
   res.setHeader("Content-Type","application/json");
@@ -31,7 +46,7 @@ const server=http.createServer((req,res)=>{
   if(u.searchParams.get("region")==="ny-buffalo"){res.statusCode=503;return res.end(JSON.stringify({status:"unavailable"}));}
   return res.end(JSON.stringify(fixture(u.searchParams.get("region"))));
  }
- const file=u.pathname==="/assets/lake-effect.js"?"assets/lake-effect.js":u.pathname==="/assets/lake-effect-explainer.js"?"assets/lake-effect-explainer.js":u.pathname==="/assets/lake-effect-radar.js"?"assets/lake-effect-radar.js":u.pathname==="/assets/lake-effect-time-lens.js"?"assets/lake-effect-time-lens.js":u.pathname==="/assets/lake-effect-time-lens.css"?"assets/lake-effect-time-lens.css":u.pathname==="/assets/lake-effect-geography.js"?"assets/lake-effect-geography.js":u.pathname==="/assets/lake-effect-geography.css"?"assets/lake-effect-geography.css":"lake-effect-snow/index.html";
+ const file=u.pathname==="/assets/lake-effect.js"?"assets/lake-effect.js":u.pathname==="/assets/lake-effect-explainer.js"?"assets/lake-effect-explainer.js":u.pathname==="/assets/lake-effect-radar.js"?"assets/lake-effect-radar.js":u.pathname==="/assets/lake-effect-time-lens.js"?"assets/lake-effect-time-lens.js":u.pathname==="/assets/lake-effect-time-lens.css"?"assets/lake-effect-time-lens.css":u.pathname==="/assets/lake-effect-geography.js"?"assets/lake-effect-geography.js":u.pathname==="/assets/lake-effect-geography.css"?"assets/lake-effect-geography.css":u.pathname==="/assets/lake-effect-grid.js"?"assets/lake-effect-grid.js":u.pathname==="/assets/lake-effect-grid.css"?"assets/lake-effect-grid.css":"lake-effect-snow/index.html";
  res.setHeader("Content-Type",file.endsWith(".js")?"text/javascript":file.endsWith(".css")?"text/css":"text/html");
  fs.createReadStream(path.join(root,file)).pipe(res);
 });
@@ -62,6 +77,15 @@ const server=http.createServer((req,res)=>{
    }else if((u.pathname.endsWith("/exportImage")||u.pathname.endsWith("/export"))){
     await route.fulfill({status:200,contentType:"image/png",headers:{"access-control-allow-origin":"*"},body:Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==","base64")});
    }else await route.continue();
+  });
+  const gridRequests=[];
+  await page.route("https://digital.weather.gov/ndfd.conus/wms**",async route=>{
+   const u=new URL(route.request().url());gridRequests.push(u);
+   const vt=u.searchParams.get("VTIT")||"";
+   assert.match(vt,/^20\d\d-\d\d-\d\dT\d\d:00_20\d\d-\d\d-\d\dT\d\d:\d\d$/,"Gridded forecast must pin valid AND issuance times");
+   assert.equal(u.searchParams.get("REQUEST"),"GetMap");
+   assert.equal(u.searchParams.get("CRS"),"EPSG:3857");
+   await route.fulfill({status:200,contentType:"image/png",body:png});
   });
   await page.goto("http://127.0.0.1:"+server.address().port+"/lake-effect-snow/?region=mi-marquette",{waitUntil:"networkidle"});
   await page.locator("#headline").waitFor({state:"visible"});
@@ -140,6 +164,55 @@ const server=http.createServer((req,res)=>{
   await page.emulateMedia({reducedMotion:"no-preference"});
   fs.mkdirSync(path.join(__dirname,"../artifacts/lake-effect-lens"),{recursive:true});
   await page.screenshot({path:path.join(__dirname,"../artifacts/lake-effect-lens/lens-"+width+".png"),fullPage:false});
+  // NDFD grid progression: exact six-hour times and issuance pinned in WMS
+  await page.locator("#le-grid").scrollIntoViewIfNeeded();
+  await page.locator("#le-grid-time").waitFor({state:"visible"});
+  await page.waitForFunction(()=>document.getElementById("le-grid-issue")?.textContent.includes("Issued"),null,{timeout:15000});
+  await page.waitForFunction(()=>document.getElementById("le-grid-map-status")?.textContent.includes("image valid"),null,{timeout:12000});
+  assert.match(await page.locator("#le-grid-time").innerText(),/to/);
+  assert.match(await page.locator("#le-grid-status").innerText(),/10 exact forecast times verified/);
+  assert.equal(await page.locator("#le-grid-map .leaflet-image-layer").count(),1);
+  assert.ok(gridRequests.some(u=>u.searchParams.get("LAYERS")==="ndfd.conus.snowamt"));
+  assert.match(await page.locator("#le-grid-nws-context").innerText(),/NWS hourly point|NWS hourly forecast/i);
+  await page.locator("#le-grid-slider").focus();
+  for(let i=0;i<3;i++)await page.keyboard.press("ArrowRight");
+  assert.equal(await page.locator("#le-grid-slider").inputValue(),"3");
+  assert.ok(new URL(page.url()).searchParams.get("gridAt"),"Deep link stores exact verified time");
+  assert.ok(gridRequests.some(u=>u.searchParams.get("VTIT")?.includes("_")),"WMS image must be issuance pinned");
+  await page.locator("#le-grid-layer").selectOption("winddir");
+  await page.waitForFunction(()=>document.getElementById("le-grid-issue").textContent.includes("Wind direction"),null,{timeout:10000});
+  assert.doesNotMatch(await page.locator("#le-grid-time").innerText(),/ to /);
+  assert.equal(new URL(page.url()).searchParams.get("gridField"),"winddir");
+  await page.waitForFunction(()=>document.getElementById("le-grid-map-status").textContent.includes("image valid"),null,{timeout:15000});
+  assert.ok(gridRequests.some(u=>u.searchParams.get("LAYERS")==="ndfd.conus.winddir"));
+  await page.locator("#le-grid-layer").selectOption("t");
+  await page.waitForFunction(()=>document.getElementById("le-grid-issue").textContent.includes("Air temperature"),null,{timeout:15000});
+  await page.waitForFunction(()=>document.getElementById("le-grid-map-status").textContent.includes("image valid"),null,{timeout:15000});
+  assert.ok(gridRequests.some(u=>u.searchParams.get("LAYERS")==="ndfd.conus.t"));
+  await page.locator("#le-grid-layer").selectOption("snowamt");
+  await page.waitForFunction(()=>document.getElementById("le-grid-issue").textContent.includes("New snow · 6 hours"),null,{timeout:15000});
+  await page.locator("#le-grid-next").click();
+  assert.equal(new URL(page.url()).searchParams.get("gridField"),"snowamt");
+  await page.locator("#le-grid-overview").click();
+  await page.emulateMedia({reducedMotion:"reduce"});
+  await page.locator("#le-grid-play").click();
+  assert.equal(await page.locator("#le-grid-play").innerText(),"Play 6-hour forecast");
+  assert.match(await page.locator("#le-grid-status").innerText(),/Reduced motion/);
+  await page.emulateMedia({reducedMotion:"no-preference"});
+  await page.locator("#le-grid-play").click();
+  assert.equal(await page.locator("#le-grid-play").innerText(),"Pause progression");
+  await page.locator("#le-grid-play").click();
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),"Grid controls must not overflow viewport");
+  await page.locator("#le-grid").screenshot({path:path.join(__dirname,"../artifacts/lake-effect-lens/grid-"+width+".png")});
+  await page.route("**/api/lake-effect-grid?**",async route=>{
+   if(route.request().url().includes("element=windspd"))return route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({status:"unavailable"})});
+   return route.continue();
+  });
+  await page.locator("#le-grid-layer").selectOption("windspd");
+  await page.waitForFunction(()=>document.getElementById("le-grid-time").textContent.includes("unavailable"),null,{timeout:14000});
+  assert.equal(await page.locator("#le-grid-map .leaflet-image-layer").count(),0,"Stale NDFD image must be removed after outage");
+  assert.match(await page.locator("#le-grid-status").innerText(),/No gridded map is displayed/);
+  await page.unroute("**/api/lake-effect-grid?**");
   // WPC map: official day/threshold layers, point checks, reduced-motion, fail closed.
   await page.locator("#le-geo").scrollIntoViewIfNeeded();
   await page.waitForFunction(()=>document.getElementById("le-geo-valid")?.textContent.includes("to"),{timeout:15000});
