@@ -180,9 +180,7 @@ const server=http.createServer((req,res)=>{
   assert.ok(new URL(page.url()).searchParams.get("gridAt"),"Deep link stores exact verified time");
   assert.ok(gridRequests.some(u=>u.searchParams.get("VTIT")?.includes("_")),"WMS image must be issuance pinned");
   await page.locator("#le-grid-layer").selectOption("winddir");
-  await page.waitForTimeout(1100);
-  console.log("GRID_WIND_DIAG",JSON.stringify({errors,requests:gridRequests.slice(-2).map(u=>u.href),ui:await page.evaluate(()=>({field:document.getElementById("le-grid-layer").value,time:document.getElementById("le-grid-time").textContent,issue:document.getElementById("le-grid-issue").textContent,status:document.getElementById("le-grid-status").textContent,overlay:!!document.querySelector("#le-grid-map .leaflet-image-layer"),url:location.href}))}));
-  await page.waitForFunction(()=>document.getElementById("le-grid-issue").textContent.includes("Surface wind direction"),null,{timeout:10000});
+  await page.waitForFunction(()=>document.getElementById("le-grid-issue").textContent.includes("Wind direction"),null,{timeout:10000});
   assert.doesNotMatch(await page.locator("#le-grid-time").innerText(),/ to /);
   assert.equal(new URL(page.url()).searchParams.get("gridField"),"winddir");
   await page.waitForFunction(()=>document.getElementById("le-grid-map-status").textContent.includes("image valid"),null,{timeout:15000});
@@ -192,7 +190,7 @@ const server=http.createServer((req,res)=>{
   await page.waitForFunction(()=>document.getElementById("le-grid-map-status").textContent.includes("image valid"),null,{timeout:15000});
   assert.ok(gridRequests.some(u=>u.searchParams.get("LAYERS")==="ndfd.conus.t"));
   await page.locator("#le-grid-layer").selectOption("snowamt");
-  await page.waitForFunction(()=>document.getElementById("le-grid-issue").textContent.includes("Six-hour new snowfall"),null,{timeout:15000});
+  await page.waitForFunction(()=>document.getElementById("le-grid-issue").textContent.includes("New snow · 6 hours"),null,{timeout:15000});
   await page.locator("#le-grid-next").click();
   assert.equal(new URL(page.url()).searchParams.get("gridField"),"snowamt");
   await page.locator("#le-grid-overview").click();
