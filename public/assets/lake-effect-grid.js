@@ -14,7 +14,7 @@ const $=id=>document.getElementById(id);
 const fmt=iso=>new Intl.DateTimeFormat(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}).format(new Date(iso));
 const short=iso=>new Intl.DateTimeFormat(undefined,{month:"short",day:"numeric",hour:"numeric",timeZoneName:"short"}).format(new Date(iso));
 const create=(tag,cl,t)=>{const e=document.createElement(tag);if(cl)e.className=cl;if(t!==undefined)e.textContent=t;return e};
-let field="snowamt",current=null,idx=0,primary=null,map=null,marker=null,picked=null,base=null,carto=null,overlay=null,started=false,playFlag=false,playTimeout=null,fetchSeq=0,imageSeq=0,fetchAbort=null;
+let field="snowamt",current=null,idx=0,primary=null,map=null,marker=null,picked=null,base=null,carto=null,overlay=null,started=false,playFlag=false,playTimeout=null,imageTimer=null,fetchSeq=0,imageSeq=0,fetchAbort=null;
 function mount(){
  if($("le-grid"))return;
  const before=$("le-geo")||$("radar-explorer")||$("forecast-explainer");if(!before)return;
@@ -116,7 +116,7 @@ async function load(){
  }
  finally{clearTimeout(timeout)}
 }
-function clearOverlay(){++imageSeq;if(map&&overlay){map.removeLayer(overlay)}overlay=null}
+function clearOverlay(){if(imageTimer){clearTimeout(imageTimer);imageTimer=null}++imageSeq;if(map&&overlay){map.removeLayer(overlay)}overlay=null}
 function paint(){
  if(!current)return;
  const f=current.frames[idx];if(!f||!goodFrame(f,field)){current=null;clearOverlay();$("le-grid-status").textContent="Forecast inventory expired. Reload the page for a fresh NOAA check.";return}
@@ -157,22 +157,32 @@ function wmsUrl(bounds,size,f){
  return WMS+"?"+p;
 }
 function draw(){
- if(!map||!current){return}
+ if(!map||!current)return;
+ if(imageTimer){clearTimeout(imageTimer);imageTimer=null}
  const f=current.frames[idx],id=++imageSeq,b=map.getBounds(),size=map.getSize();
  if(overlay){map.removeLayer(overlay);overlay=null}
  $("le-grid-map-fallback").hidden=false;$("le-grid-map-fallback").textContent="Loading verified NOAA frame…";
  $("le-grid-map-status").textContent="Requesting official NDFD "+FIELDS[field].label+" image for "+short(f.validAt)+".";
  const layer=root.L.imageOverlay(wmsUrl(b,size,f),b,{opacity:FIELDS[field].opacity,interactive:false});
- layer.on("load",()=>{if(id!==imageSeq||!current)return;
+ function failed(reason){
+  if(id!==imageSeq)return;
+  if(imageTimer){clearTimeout(imageTimer);imageTimer=null}
+  stop();if(map)map.removeLayer(layer);if(overlay===layer)overlay=null;
+  $("le-grid-map-fallback").hidden=false;
+  $("le-grid-map-fallback").textContent=reason;
+  $("le-grid-map-status").textContent="No image substituted. Choose another verified time or open the official NWS maps.";
+ }
+ layer.on("load",()=>{
+  if(id!==imageSeq||!current)return;
+  if(imageTimer){clearTimeout(imageTimer);imageTimer=null}
   $("le-grid-map-fallback").hidden=true;
   $("le-grid-map-status").textContent="NOAA/NWS gridded "+FIELDS[field].label.toLowerCase()+" · Forecast image valid "+short(f.validAt)+". Map colors belong to the published NWS layer.";
   if(playFlag)scheduleNext();
  });
- layer.on("error",()=>{if(id!==imageSeq)return;
-  stop();if(map)map.removeLayer(layer);if(overlay===layer)overlay=null;
-  $("le-grid-map-fallback").hidden=false;$("le-grid-map-fallback").textContent="NOAA image unavailable for this exact forecast time.";
-  $("le-grid-map-status").textContent="No image substituted. Choose another verified time or open the official NWS maps.";
- });
+ layer.on("error",()=>failed("NOAA image unavailable for this exact forecast time."));
+ // NOAA image endpoints sometimes stall without firing either browser event.
+ // Keep the previous verified forecast text, but never leave a blank spinner forever.
+ imageTimer=setTimeout(()=>failed("The official NOAA map image did not load in time. Try another verified frame or the official NWS maps."),12000);
  overlay=layer;layer.addTo(map);
 }
 async function leaflet(){
