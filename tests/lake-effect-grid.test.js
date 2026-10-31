@@ -45,6 +45,9 @@ test("Map source never interpolates and existing canonical WPC/radar remain",()=
  const main=fs.readFileSync(path.join(__dirname,"../public/assets/lake-effect.js"),"utf8");
  assert.match(script,/only render server-|Only render server-/i);
  assert.match(script,/VTIT/);assert.match(script,/prefers-reduced-motion/);
+ assert.match(script,/imageTimer=setTimeout/);
+ assert.match(script,/The official NOAA map image did not load in time/);
+ assert.match(script,/if(imageTimer)\{clearTimeout\(imageTimer\)/);
  assert.match(script,/No exact local snowfall number|does not give an exact snowfall number/);
  assert.match(script,/Wind direction/);assert.match(script,/Air temperature/);
  assert.match(html,/lake-effect-grid\.css/);assert.match(html,/lake-effect-grid\.js/);
