@@ -17,6 +17,11 @@ on:
       - "public/assets/lake-effect-radar.js"
       - "public/assets/lake-effect-time-lens.js"
       - "public/assets/lake-effect-time-lens.css"
+      - "public/assets/lake-effect-geography.js"
+      - "public/assets/lake-effect-geography.css"
+      - "api/lake-effect-geography.js"
+      - "tests/lake-effect-geography.test.js"
+      - "scripts/lake-effect-wpc-live-smoke.cjs"
       - "tests/lake-effect-time-lens.test.js"
       - "tests/lake-effect-radar.test.js"
       - "tests/lake-effect-hardening.test.js"
@@ -51,6 +56,8 @@ jobs:
         run: node scripts/benchmark-lake-effect-history.cjs --check
       - name: Verify official NOAA and NWS feeds
         run: node scripts/lake-effect-live-smoke.cjs
+      - name: Verify live WPC snowfall probability windows and issue provenance
+        run: node scripts/lake-effect-wpc-live-smoke.cjs
   browser:
     runs-on: ubuntu-latest
     timeout-minutes: 8
