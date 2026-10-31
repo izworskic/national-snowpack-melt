@@ -48,7 +48,7 @@ function mount(){
  '<h4 id="le-lens-title">When does the snowbelt setup change?</h4>'+
  '<p class="le-lens-intro">Compare two NWS forecast points as the next 72 hours unfold. These are <strong>real forecast hours</strong>, not an animated prediction of where narrow snowbands will travel.</p>'+
  '<div class="le-lens-choose"><div><span class="le-lens-small">Selected snowbelt</span><strong id="le-lens-a-choice">Checking…</strong></div><label for="le-lens-select">Compare with<select id="le-lens-select"></select></label></div>'+
- '<div class="le-lens-controls"><div><span>Forecast valid time</span><strong id="le-lens-time">Waiting for forecast…</strong></div>'+
+ '<div class="le-lens-controls"><div><span>Forecast valid time (your device time)</span><strong id="le-lens-time">Waiting for forecast…</strong></div>'+
  '<div class="le-lens-steps"><button type="button" id="le-lens-prev">− 3h</button><input id="le-lens-slider" type="range" min="0" max="23" value="0" step="1" aria-label="NWS forecast hour, three hours per step"><button type="button" id="le-lens-next">+ 3h</button><button type="button" id="le-lens-play">Play forecast</button></div>'+
  '<div class="le-lens-ticks"><span>First hour</span><span>+24h</span><span>+48h</span><span>+69h</span></div></div>'+
  '<div class="le-lens-answer" id="le-lens-answer" aria-live="polite"><strong id="le-lens-heading">Loading official evidence…</strong><p id="le-lens-why"></p></div>'+
@@ -95,7 +95,7 @@ function paint(){
  $("le-lens-time").textContent=fmt(Date.parse(at));
  $("le-lens-slider").value=String(lead);$("le-lens-slider").setAttribute("aria-valuetext",fmt(Date.parse(at)));
  $("le-lens-prev").disabled=lead===0;$("le-lens-next").disabled=lead===MAX;
- $("le-lens-heading").textContent=j.winner?"More overlapping evidence: "+(j.winner==="a"?primary.region.name:secondary.region.name):j.headline;
+ $("le-lens-heading").textContent=j.winner?"More supporting signals: "+(j.winner==="a"?primary.region.name:secondary.region.name):j.headline;
  $("le-lens-why").textContent=j.detail;
  words("le-lens-a",primary,j.x);words("le-lens-b",secondary,j.y);
  const warnings=[primary,secondary].filter(r=>r?.verdict?.official_warning).map(r=>r.region.name);
