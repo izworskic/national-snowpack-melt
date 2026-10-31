@@ -245,6 +245,35 @@ const server=http.createServer((req,res)=>{
   assert.ok((await page.locator("#le-geo-map .leaflet-image-layer").getAttribute("src")).includes("layers=show%3A7"),"Day 2 >=8 inches must use WPC layer 7");
   await page.locator("#le-geo-home").click();
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),"Geographic outlook must fit viewport");
+  // Experience OS v1.2: an old WPC point-query error must not overwrite new
+  // day/threshold evidence while its separately issued 24-hour metadata loads.
+  if(width===390){
+   let delayedPointSeen=false;
+   await page.route("**/api/lake-effect-geography?**",async route=>{
+    const u=new URL(route.request().url());
+    if(u.searchParams.get("mode")==="point"&&u.searchParams.get("day")==="2"&&u.searchParams.get("threshold")==="8"){
+     delayedPointSeen=true;
+     await new Promise(resolve=>setTimeout(resolve,550));
+     try{await route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({status:"unavailable"})})}catch{}
+     return;
+    }
+    if(u.searchParams.get("mode")==="window"&&u.searchParams.get("day")==="3"&&u.searchParams.get("threshold")==="8"){
+     await new Promise(resolve=>setTimeout(resolve,1350));
+    }
+    try{await route.continue()}catch{}
+   });
+   await page.locator("#le-geo-map").click({position:{x:95,y:95}});
+   await page.waitForTimeout(180);
+   assert.equal(delayedPointSeen,true,"Must exercise an actual delayed WPC point request");
+   await page.locator('[data-geo-day="3"]').click();
+   await page.waitForTimeout(760);
+   assert.match(await page.locator("#le-geo-probe").innerText(),/Checking the selected location against official WPC boundaries/);
+   assert.doesNotMatch(await page.locator("#le-geo-probe").innerText(),/cannot be verified against this WPC issuance/);
+   await page.waitForFunction(()=>document.getElementById("le-geo-issue").textContent.includes("Day 3"),null,{timeout:9000});
+   await page.unroute("**/api/lake-effect-geography?**");
+   await page.locator('[data-geo-day="2"]').click();
+   await page.waitForFunction(()=>document.getElementById("le-geo-issue").textContent.includes("Day 2"),null,{timeout:10000});
+  }
   await page.emulateMedia({reducedMotion:"reduce"});
   await page.locator("#le-geo-play").click();
   assert.equal(await page.locator("#le-geo-play").innerText(),"Play progression");
@@ -265,6 +294,21 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator("#le-geo-map .leaflet-image-layer").count(),0,"Stale outlook must be removed");
   assert.match(await page.locator("#le-geo-probe").innerText(),/No probability is inferred/);
   await page.unroute("**/api/lake-effect-geography?**");
+  // A valid WPC forecast inventory is not proof that its image will load.
+  // Verify a hung NOAA image fails closed, with a bounded and compact fallback.
+  if(width===390){
+   await page.route(/\/wpc_prob_winter_precip\/MapServer\/export\?/,async route=>{
+    await new Promise(resolve=>setTimeout(resolve,14200));
+    try{await route.fulfill({status:200,contentType:"image/png",body:png})}catch{}
+   });
+   await page.locator('[data-geo-day="1"]').click();
+   await page.locator('[data-geo-inches="4"]').click();
+   await page.waitForFunction(()=>document.getElementById("le-geo-map-fallback")?.textContent.includes("did not load in time"),null,{timeout:16000});
+   assert.equal(await page.locator("#le-geo-map .leaflet-image-layer").count(),0,
+    "A timed-out WPC image must be removed, not preserved behind a warning");
+   assert.match(await page.locator("#le-geo-map-status").innerText(),/No outdated probability contours/);
+   await page.unroute(/\/wpc_prob_winter_precip\/MapServer\/export\?/);
+  }
   await page.locator("#radar-load").click();
   await page.waitForFunction(()=>document.getElementById("radar-time").max!=="0",{timeout:18000});
   assert.match(await page.locator("#radar-status").innerText(),/verified MRMS observations/);
