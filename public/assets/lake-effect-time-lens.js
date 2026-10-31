@@ -17,6 +17,7 @@ function signal(d,at,now=Date.now()){
  if(!verified(d,now))return {...SIGNAL.unknown,why:"Fresh NWS forecast timing or first-window coverage is not confirmed."};
  const row=(d.hours||[]).find(h=>h.at===at);
  if(!row)return {...SIGNAL.unknown,why:"No NWS point forecast for this exact forecast hour."};
+ if(!row.forecast_snow&&row.wind_aligned===null)return {...SIGNAL.unknown,why:"NWS does not mention snow at this point, but wind direction is missing; this hour cannot be fully compared."};
  const type=row.forecast_snow?(row.wind_aligned===true?"overlap":"snow"):row.wind_aligned===true?"wind":"none";
  return {...SIGNAL[type],why:row.short_forecast||"NWS description unavailable",wind:row.wind_from||"unavailable",
   temperature:Number.isFinite(row.temperature_f)?row.temperature_f:null};
@@ -38,7 +39,7 @@ if(typeof document==="undefined")return;
 const $=id=>document.getElementById(id),mk=(t,cl,txt)=>{const n=document.createElement(t);if(cl)n.className=cl;if(txt!==undefined)n.textContent=txt;return n};
 const fmt=ms=>new Intl.DateTimeFormat(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}).format(new Date(ms));
 let primary=null,secondary=null,catalog=[],loaded=null,choice=null,lead=0,start=null,token=0,request=null,timer=null;
-let map=null,markers=[],base=null,carto=null,open=false;
+let map=null,markers=[],base=null,carto=null,open=false,mapBoundsKey="";
 function mount(){
  if($("le-lens"))return;
  const sibling=$("radar-explorer")||$("forecast-explainer");if(!sibling)return;
@@ -138,7 +139,8 @@ async function render(d){
  primary=d;stop();
  const hours=(d.hours||[]).filter(h=>Number.isFinite(Date.parse(h.at))&&Date.parse(h.at)>=Math.floor(Date.now()/H)*H).sort((a,b)=>Date.parse(a.at)-Date.parse(b.at));
  start=hours.length?Date.parse(hours[0].at):null;
- if(changed){const u=new URL(root.location.href),direct=!choice&&u.searchParams.get("region")===d.region.id;
+ if(changed){++token;if(request)request.abort();
+  const u=new URL(root.location.href),direct=!choice&&u.searchParams.get("region")===d.region.id;
   const requested=direct?Number(u.searchParams.get("lead")):0;
   lead=Number.isInteger(requested)&&requested>=0&&requested<=69&&requested%3===0?requested/3:0;
   if(choice===d.region.id)choice=null;secondary=null;
@@ -164,8 +166,10 @@ function redrawMap(j){
   markers[i].bindPopup(mk("div",null,r.name+": "+s.label+". "+s.why));
  });
  const a=primary.region,b=secondary?.region;
- if(b&&Number.isFinite(b.lat)&&Number.isFinite(b.lon))map.fitBounds([[a.lat,a.lon],[b.lat,b.lon]],{padding:[36,36],maxZoom:8,animate:false});
- else map.setView([a.lat,a.lon],7,{animate:false});
+ const boundsKey=a.id+"|"+(b&&Number.isFinite(b.lat)&&Number.isFinite(b.lon)?b.id:"none");
+ if(boundsKey!==mapBoundsKey){mapBoundsKey=boundsKey;
+  if(b&&Number.isFinite(b.lat)&&Number.isFinite(b.lon))map.fitBounds([[a.lat,a.lon],[b.lat,b.lon]],{padding:[36,36],maxZoom:8,animate:false});
+  else map.setView([a.lat,a.lon],7,{animate:false});}
  $("le-lens-osm").href="https://www.openstreetmap.org/?mlat="+a.lat+"&mlon="+a.lon+"#map=7/"+a.lat+"/"+a.lon;
 }
 async function leaflet(){
