@@ -213,6 +213,21 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator("#le-grid-map .leaflet-image-layer").count(),0,"Stale NDFD image must be removed after outage");
   assert.match(await page.locator("#le-grid-status").innerText(),/No gridded map is displayed/);
   await page.unroute("**/api/lake-effect-grid?**");
+  // A real NOAA WMS image can stall. The UI must fail closed without waiting forever,
+  // and a late response must not resurrect the abandoned forecast image.
+  if(width===390){
+   await page.route("https://digital.weather.gov/ndfd.conus/wms**",async route=>{
+    await new Promise(ok=>setTimeout(ok,14500));
+    try{await route.fulfill({status:200,contentType:"image/png",body:png})}catch{}
+   });
+   await page.locator("#le-grid-layer").selectOption("snowamt");
+   await page.waitForFunction(()=>document.getElementById("le-grid-map-fallback").textContent.includes("did not load in time"),null,{timeout:16500});
+   assert.equal(await page.locator("#le-grid-map .leaflet-image-layer").count(),0);
+   await page.waitForTimeout(3000);
+   assert.match(await page.locator("#le-grid-map-status").innerText(),/No image substituted/);
+   assert.equal(await page.locator("#le-grid-map .leaflet-image-layer").count(),0);
+   await page.unroute("https://digital.weather.gov/ndfd.conus/wms**");
+  }
   // WPC map: official day/threshold layers, point checks, reduced-motion, fail closed.
   await page.locator("#le-geo").scrollIntoViewIfNeeded();
   await page.waitForFunction(()=>document.getElementById("le-geo-valid")?.textContent.includes("to"),{timeout:15000});
