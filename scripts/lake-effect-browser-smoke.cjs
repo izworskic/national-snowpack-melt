@@ -168,9 +168,9 @@ const server=http.createServer((req,res)=>{
   await page.locator("#le-grid").scrollIntoViewIfNeeded();
   await page.locator("#le-grid-time").waitFor({state:"visible"});
   await page.waitForTimeout(1500);
-  console.log("GRID_DIAG",JSON.stringify({viewport:width,errors,grid:await page.evaluate(()=>({time:document.getElementById("le-grid-time")?.textContent,issue:document.getElementById("le-grid-issue")?.textContent,status:document.getElementById("le-grid-status")?.textContent,script:typeof window.LakeEffectGrid,map:!!document.querySelector("#le-grid-map .leaflet-pane"),fallback:document.getElementById("le-grid-map-fallback")?.textContent,url:location.href}))}));
+  console.log("GRID_DIAG",JSON.stringify({viewport:width,errors,gridRequests:gridRequests.map(x=>x.href).slice(-3),grid:await page.evaluate(()=>({time:document.getElementById("le-grid-time")?.textContent,issue:document.getElementById("le-grid-issue")?.textContent,status:document.getElementById("le-grid-status")?.textContent,mapStatus:document.getElementById("le-grid-map-status")?.textContent,script:typeof window.LakeEffectGrid,map:!!document.querySelector("#le-grid-map .leaflet-pane"),images:[...document.querySelectorAll("#le-grid-map img.leaflet-image-layer")].map(x=>({src:x.src,complete:x.complete,width:x.naturalWidth})),fallback:document.getElementById("le-grid-map-fallback")?.textContent,url:location.href}))}));
   await page.waitForFunction(()=>document.getElementById("le-grid-issue")?.textContent.includes("Issued"),{timeout:15000});
-  await page.waitForFunction(()=>document.getElementById("le-grid-map-status")?.textContent.includes("image valid"),{timeout:15000});
+  await page.waitForFunction(()=>document.getElementById("le-grid-map-status")?.textContent.includes("image valid"),null,{timeout:12000});
   assert.match(await page.locator("#le-grid-time").innerText(),/to/);
   assert.match(await page.locator("#le-grid-status").innerText(),/10 exact forecast times verified/);
   assert.equal(await page.locator("#le-grid-map .leaflet-image-layer").count(),1);
