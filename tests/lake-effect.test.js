@@ -105,6 +105,16 @@ test("frontend keeps source identity, crawlable content and no fake geographic b
  assert.match(html,/Built by <a href="https:\/\/chrisizworski.com\/chris-izworski\/"/);
  for(const id of ["hours","state","region","alerts","forecast-coverage","snow-signal","snow-signal-detail","evidence-freshness","freshness-detail","matched","alert-count","lake-reading","status","wssi-impact","lake-ice"])assert.match(html,new RegExp('id="'+id+'"'));
  assert.doesNotMatch(html,/id="confidence"|Evidence confidence|Not a snow probability/);
+ for(const id of ["forecast-story-heading","forecast-story-lead","forecast-story-why","forecast-story-next"])assert.match(html,new RegExp('id="'+id+'"'));
+ assert.match(html,/not a forecast issued by a meteorologist/);
+ assert.match(html,/https:\/\/www\.weather\.gov\/apx\/les/);
+ assert.match(html,/lake-effect\.js\?v=20261101-3/);
+ assert.match(ui,/function forecastStory\(d,evidence\)/);
+ assert.match(ui,/if\(v\.official_warning===true\)/);
+ assert.match(ui,/else if\(!verified\)/);
+ assert.match(ui,/else if\(noSnow&&total===72\)/);
+ assert.match(ui,/else if\(noSnow&&total>0\)/);
+ assert.match(ui,/if\(d\.alerts_status!=="available"\)/);
  assert.match(html,/Lake-effect snow outlook · next 72 hours/);
  assert.match(ui,/v\.official_snow_forecast===false&&valid72===72/);
  assert.match(ui,/v\.official_snow_forecast===false&&valid72>0/);

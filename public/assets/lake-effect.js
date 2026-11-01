@@ -143,9 +143,67 @@ function evidenceReadout(d,now=Date.now()){
   valid72
  };
 }
+// A neighborly weather briefing, based only on the same verified NWS point data as the verdict.
+// Never call a wind-only signal snow, fill missing hours, or imply an exact band track.
+function forecastStory(d,evidence){
+ const v=d.verdict||{},where=d.region?.name||"this snowbelt";
+ const verified=v.data_ok===true&&evidence.freshness==="Current";
+ const snow=v.official_snow_forecast===true;
+ const noSnow=v.official_snow_forecast===false;
+ const total=evidence.valid72;
+ const snowHours=Math.max(0,Number(v.next_72h?.snow_forecast_hours)||0);
+ const timing=["Next 12 hours","12–24 hours","24–48 hours","48–72 hours"].includes(v.timing_window)?v.timing_window:null;
+ let lead,why,next;
+ if(v.official_warning===true){
+  lead="An official winter warning is in effect for this checkpoint. That comes before any colored chart or wind reading.";
+  why="The NWS warning has its own boundaries and expiration time. A narrow snowband can make one stretch of road much worse than the next, and this tool does not predict its track.";
+  next="Read the original NWS warning and check conditions for your actual route before heading out.";
+ }else if(v.official_lake_effect_alert===true){
+  lead="The NWS has an active alert that mentions lake-effect snow near "+where+". That's worth a closer look.";
+  why="An alert may cover a broader area or a different time than the single town and hour shown here. Its official wording is what matters.";
+  next="Start with the NWS alert's location and timing, then keep an eye on the next hourly forecast.";
+ }else if(!verified){
+  lead="We don't have enough fresh NWS information to give "+where+" a reliable lake-effect read right now.";
+  why="Some forecast hours or wind details are missing, or the forecast is too old. A gap in the data is not evidence of calm weather.";
+  next="Use the latest NWS forecast and any local alerts before making travel plans. We'll show a fuller picture when the source data returns.";
+ }else if(snow&&v.level==="favored"){
+  lead="Here's the setup to watch around "+where+": the NWS forecasts snow in "+snowHours+" of "+total+" available forecast hours, and the wind lines up with this snowbelt during part of the outlook.";
+  why="When colder air travels over relatively warmer lake water, it can pick up moisture. Wind helps steer that moisture toward shore, but it cannot tell us exactly where a snowband will settle.";
+  next=(timing?"Pay particular attention to the "+timing.toLowerCase()+" window. ":"")+"Watch NWS updates and local alerts before traveling between snowbelt towns. A small wind shift can make a big local difference.";
+ }else if(snow){
+  lead="Snow is in the NWS forecast for "+where+", but that alone doesn't tell us it will be lake-effect snow.";
+  why="The local wind pattern doesn't yet provide a clear lake-effect match in this check. Regular storm systems can also bring snow to the same towns.";
+  next="Watch the next NWS update for changes in wind direction, snow timing and local alerts. No exact snowband path is verified here.";
+ }else if(noSnow&&v.level==="wind-only"){
+  lead="The wind is pointing toward "+where+"'s snowbelt, but the NWS isn't forecasting snow at this checkpoint in the hours we've checked.";
+  why="Wind is just one ingredient. We also need the right cold air and moisture for lake-effect snow to develop; wind direction alone isn't a snow forecast.";
+  next="Look for actual snow to appear in the NWS forecast before treating this as a snow opportunity.";
+ }else if(noSnow&&total===72){
+  lead="Right now, the forecast looks quiet for "+where+". The NWS isn't calling for snow at this checkpoint over the next 72 hours.";
+  why="The lakes can help make snow when cold air, moisture and wind come together, even in late fall. But relatively warm lake water on its own isn't a snow forecast.";
+  next="No lake-effect snow signal to act on from this forecast. Check back after the next NWS update, especially if colder air is on the way.";
+ }else if(noSnow&&total>0){
+  lead="We aren't seeing snow in the "+total+" forecast hours available for "+where+", but there's still part of the outlook we can't check.";
+  why="Missing hours are unknown, not snow-free. And a forecast for one town never tells the whole story for neighboring communities.";
+  next="Check the latest NWS forecast for the rest of the period before deciding the whole snowbelt will stay quiet.";
+ }else{
+  lead="The current forecast for "+where+" doesn't support a firm lake-effect call.";
+  why="We can only draw conclusions from verified forecast hours and official NWS alerts, not the wind or lake temperature by themselves.";
+  next="Check the official NWS hourly forecast and active alerts for your exact destination.";
+ }
+ if(total<72&&verified&&snow)why+=" Only "+total+" of 72 forecast hours are available here; gaps are unknown.";
+ if(total<72&&verified&&noSnow&&v.level==="wind-only")why+=" Some later forecast hours are missing, so we cannot rule out a later change.";
+ if(d.alerts_status!=="available")
+  next+=" The NWS alert feed wasn't available here; check weather.gov directly for warnings.";
+ return {lead,why,next};
+}
 function render(d){
  const v=d.verdict||{},region=d.region||{};
  const evidence=evidenceReadout(d);
+ const story=forecastStory(d,evidence);
+ text("forecast-story-lead",story.lead);
+ text("forecast-story-why",story.why);
+ text("forecast-story-next",story.next);
  text("headline",label(evidence.heading));text("impact",label(v.impact)+(v.model_caution?" "+v.model_caution:""));text("timing-window",label(v.timing_window));
  text("forecast-coverage",evidence.coverage);
  text("snow-signal",evidence.snow);text("snow-signal-detail",evidence.detail);

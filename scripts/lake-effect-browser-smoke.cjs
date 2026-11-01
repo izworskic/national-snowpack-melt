@@ -91,11 +91,17 @@ const server=http.createServer((req,res)=>{
   await page.locator("#headline").waitFor({state:"visible"});
   assert.equal(await page.locator("#forecast-coverage").innerText(),"12 of 12 hours");
   assert.equal(await page.locator("#snow-signal").innerText(),"NWS forecasts snow");
+  assert.match(await page.locator("#forecast-story-lead").innerText(),/NWS forecasts snow in 10 of 72 available forecast hours/i);
+  assert.match(await page.locator("#forecast-story-why").innerText(),/lake water|snowband/i);
+  assert.match(await page.locator("#forecast-story-next").innerText(),/NWS updates/i);
+  assert.match(await page.locator(".forecast-story-note").innerText(),/not a forecast issued by a meteorologist/i);
+  assert.equal(await page.locator(".forecast-story-note a[href='https://www.weather.gov/apx/les']").count(),1);
   assert.equal(await page.locator("#evidence-freshness").innerText(),"Current");
   assert.equal(await page.locator("#confidence").count(),0,"Ambiguous confidence badge must not be visible");
   assert.equal(await page.evaluate(()=>!!(document.getElementById("method").compareDocumentPosition(document.getElementById("snow-evidence-layers"))&Node.DOCUMENT_POSITION_FOLLOWING)),true,"Visitor-facing readout must precede deeper technical evidence");
   assert.match(await page.locator("#matched").innerText(),/of 12 forecast hours/);
   fs.mkdirSync(path.join(__dirname,"../artifacts/lake-effect-lens"),{recursive:true});
+  assert.equal(await page.locator(".forecast-story").count(),1,"One forecast explanation per region");
   await page.locator("#dashboard .verdict").screenshot({path:path.join(__dirname,"../artifacts/lake-effect-lens/evidence-"+width+".png")});
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),"Evidence summary must not overflow body");
   assert.equal(await page.locator("#snow-evidence-layers .snow-evidence-item").count(),3);
@@ -375,6 +381,8 @@ const server=http.createServer((req,res)=>{
   assert.equal((await page.locator("#lake-name").innerText()).toLowerCase(),"lake ontario");
    assert.equal(await page.locator("#headline").innerText(),"No snow signal identified");
    assert.equal(await page.locator("#snow-signal").innerText(),"None at checkpoint");
+   assert.match(await page.locator("#forecast-story-lead").innerText(),/forecast looks quiet/i);
+   assert.doesNotMatch(await page.locator("#forecast-story-lead").innerText(),/snow is expected|snow in 10/i);
    assert.match(await page.locator("#snow-signal-detail").innerText(),/72 available forecast hours/);
    assert.equal(await page.locator("#forecast-coverage").innerText(),"12 of 12 hours");
   assert.match(await page.locator("#snow-evidence-layers").innerText(),/Not verified/);
@@ -388,6 +396,8 @@ const server=http.createServer((req,res)=>{
   await page.locator("#state").selectOption("MI");await page.locator("#region").selectOption("mi-gaylord");await page.locator("#check").click();
   await page.waitForFunction(()=>new URL(location.href).searchParams.get("region")==="mi-gaylord");
    assert.equal(await page.locator("#snow-signal").innerText(),"None in available hours");
+   assert.match(await page.locator("#forecast-story-lead").innerText(),/36 forecast hours available/i);
+   assert.match(await page.locator("#forecast-story-why").innerText(),/Missing hours are unknown/i);
    assert.match(await page.locator("#snow-signal-detail").innerText(),/36 of 72 forecast hours available/);
   assert.equal(await page.locator("#story-contrast circle").count(),0,"Stale model must never leave old plotted values");
   assert.match(await page.locator("#story-model-note").innerText(),/unavailable or stale/);
@@ -396,6 +406,8 @@ const server=http.createServer((req,res)=>{
   await page.locator("#region").selectOption("mi-traverse");await page.locator("#check").click();
   await page.waitForFunction(()=>new URL(location.href).searchParams.get("region")==="mi-traverse");
    assert.equal(await page.locator("#snow-signal").innerText(),"Not verified");
+   assert.match(await page.locator("#forecast-story-lead").innerText(),/don't have enough fresh NWS information/i);
+   assert.match(await page.locator("#forecast-story-why").innerText(),/gap in the data is not evidence of calm weather/i);
    assert.equal(await page.locator("#forecast-coverage").innerText(),"3 of 12 hours");
    assert.equal(await page.locator("#evidence-freshness").innerText(),"Stale or unverified");
   assert.match(await page.locator("#story-decision-title").innerText(),/fresh check/);
@@ -403,6 +415,8 @@ const server=http.createServer((req,res)=>{
   await page.locator("#state").selectOption("NY");await page.locator("#region").selectOption("ny-tug-hill");await page.locator("#check").click();
   await page.waitForFunction(()=>new URL(location.href).searchParams.get("region")==="ny-tug-hill");
   assert.match(await page.locator("#story-decision-title").innerText(),/Active NWS warning/);
+   assert.match(await page.locator("#forecast-story-lead").innerText(),/official winter warning/i);
+   assert.match(await page.locator("#forecast-story-next").innerText(),/actual route/i);
   assert.match(await page.locator("#story-next-check").innerText(),/Read the original NWS warning/);
   await page.locator("#locate").click();
   await page.locator("#state").selectOption("NY");await page.locator("#region").selectOption("ny-buffalo");

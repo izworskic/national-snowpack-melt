@@ -31,6 +31,16 @@ button{border:0;color:#fff;background:var(--blue);padding:9px 16px;cursor:pointe
 .evidence-detail{border-top:1px solid var(--line);padding-top:10px;font-size:.82rem;line-height:1.6;color:#405c6a;margin:8px 0}
 .evidence-detail strong{color:#244d5f}
 @media(max-width:760px){.forecast-evidence{grid-template-columns:1fr;gap:6px}.forecast-evidence>div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.12fr);gap:0 9px;padding:9px 11px}.forecast-evidence dt{grid-column:1;align-self:center}.forecast-evidence dd{grid-column:2;text-align:right;margin:0}.forecast-evidence p{grid-column:1/-1;margin-top:3px}}
+/* Forecaster-style explanation: readable before specialist evidence, text changes with NWS data. */
+.forecast-story{border:1px solid #c6dce0;border-radius:11px;background:linear-gradient(130deg,#f4fafb 0%,#fff 65%);padding:16px 18px;margin:15px 0 12px}
+.forecast-story-label{font-size:.69rem;letter-spacing:.11em;text-transform:uppercase;font-weight:800;color:#177486}
+.forecast-story h3{font:normal clamp(1.13rem,2vw,1.45rem)/1.25 Georgia,serif;color:#16485b;margin:3px 0 8px}
+.forecast-story-lead{font-size:1.01rem;line-height:1.58;color:#264857;margin:0 0 11px;max-width:76ch}
+.forecast-story-detail{display:grid;grid-template-columns:1fr 1fr;gap:14px;border-top:1px solid #d9e7ea;padding-top:11px}
+.forecast-story-detail strong{display:block;font-size:.77rem;color:#145a6c;letter-spacing:.01em}
+.forecast-story-detail p{font-size:.87rem;line-height:1.52;margin:4px 0;color:#3a5865}
+.forecast-story-note{font-size:.72rem;line-height:1.45;color:#5a717a;margin:12px 0 0}
+@media(max-width:760px){.forecast-story{padding:13px 14px}.forecast-story-detail{grid-template-columns:1fr;gap:10px}.forecast-story-lead{font-size:.96rem}}
 small,.small{color:var(--muted);font-size:.81rem}.alert{border-left:4px solid #a15716;background:#fff7eb;padding:12px;margin:10px 0}.alert a{display:block;font-size:.8rem}.alert strong{font-size:.91rem}
 .hours{overflow-x:auto;overscroll-behavior-inline:contain;padding-bottom:9px}.timeline{display:flex;gap:5px;min-width:max-content}.hour{width:96px;min-height:132px;flex:0 0 auto;border-radius:6px;border:1px solid var(--line);padding:8px;color:#28424f;background:#edf3f7}.hour em{display:block;font-style:normal;font-weight:750;font-size:.77rem}.hour strong{display:block;font-size:1.05rem;margin:7px 0}.hour p{font-size:.68rem;margin:0;line-height:1.25}.hour.match{background:#d9edf2;border-color:#90c5cf}.hour.wind{background:#f4e8d0;border-color:#e2bd81}.hour.snow{background:#e8eefb;border-color:#b4c6ef}.legend{display:flex;gap:10px;flex-wrap:wrap;margin:11px 0}.legend span{font-size:.74rem;padding:3px 7px;border:1px solid var(--line);border-radius:5px}.guide{display:grid;grid-template-columns:1fr 1fr;gap:20px}.guide h3{margin:0;color:#1b4c63;font-size:1.03rem}.guide p{margin:5px 0 14px}
 
@@ -111,8 +121,8 @@ footer{border-top:1px solid var(--line);padding:24px 0;color:#526873;font-size:.
 <section class="hero"><div class="shell">
 <div class="kicker">Great Lakes · An hour-by-hour winter decision tool</div>
 <h1>Lake-effect snow: which snowbelt is favored?</h1>
-<p>Pick a place and watch the setup change. NWS hourly winds and snow forecasts tell one part of the story; official warnings tell another. NOAA lake temperatures provide context. Together they help you see when to pay closer attention—without pretending to know which street the band will cross.</p>
-<p class="quote">A few degrees of wind shift can move the heaviest snow miles away. No map can honestly promise the exact track three days ahead.</p><p style="font-size:.73rem;color:#d5e7ef">Historic satellite imagery: NASA Earth Observatory / Terra MODIS, February 11, 2016. This is not a current forecast image. <a href="https://science.nasa.gov/earth/earth-observatory/cloud-streets-over-the-great-lakes-87504/" target="_blank" rel="noopener">Image source</a>.</p>
+<p>One town may be watching snow come off the lake while the next stays dry. Choose a snowbelt and we'll walk through what the National Weather Service is actually forecasting, what the wind is doing, and what is still uncertain.</p>
+<p class="quote">A small wind shift can move a narrow lake-effect band. Think of this as a forecast conversation, not a promise about your driveway.</p><p style="font-size:.73rem;color:#d5e7ef">Historic satellite imagery: NASA Earth Observatory / Terra MODIS, February 11, 2016. This is not a current forecast image. <a href="https://science.nasa.gov/earth/earth-observatory/cloud-streets-over-the-great-lakes-87504/" target="_blank" rel="noopener">Image source</a>.</p>
 </div></section>
 <main class="main shell">
 <section class="panel" aria-labelledby="choose-title">
@@ -129,10 +139,16 @@ footer{border-top:1px solid var(--line);padding:24px 0;color:#526873;font-size:.
 <div><dt>NWS forecast freshness</dt><dd id="evidence-freshness">Checking…</dd><p id="freshness-detail">Issued forecast time will appear here</p></div>
 </dl>
 <p class="evidence-detail"><strong>Snow + aligned wind (first 12 hours):</strong> <span id="matched">—</span>. <strong>Official winter alerts:</strong> <span id="alert-count">—</span><span id="alert-status"></span></p>
+<section class="forecast-story" aria-labelledby="forecast-story-heading">
+<div class="forecast-story-top"><span class="forecast-story-label">The weather story</span><h3 id="forecast-story-heading">What the forecast is telling us</h3></div>
+<p class="forecast-story-lead" id="forecast-story-lead">Checking the latest NWS forecast for this snowbelt…</p>
+<div class="forecast-story-detail"><div><strong>Why it matters</strong><p id="forecast-story-why">Cold air, lake water and wind all play a part.</p></div><div><strong>What to watch next</strong><p id="forecast-story-next">Look for the latest NWS forecast and local alerts.</p></div></div>
+<p class="forecast-story-note">A plain-English reading of NWS forecast data, not a forecast issued by a meteorologist. Conditions can vary sharply between towns. <a href="https://www.weather.gov/apx/les" target="_blank" rel="noopener">Why lake-effect snow is hard to pin down</a>.</p>
+</section>
 <p id="method" class="small"></p></section>
 <section class="panel"><h2>Hourly conditions: next 72 hours</h2><p>Scroll across the forecast. Each column is an NWS hourly point forecast for the selected representative town, not a predicted snowband position.</p><div class="legend"><span style="background:#d9edf2">Snow forecast + favorable surface wind</span><span style="background:#e8eefb">Snow forecast, uncertain wind alignment</span><span style="background:#f4e8d0">Wind aligned, snow not forecast</span></div><div class="le-story" id="forecast-explainer" aria-labelledby="story-heading">
- <h3 id="story-heading">Read the changing snowbelt setup</h3>
- <p class="small">Select a forecast window or a chart point to learn why the signal may strengthen or fade. NWS provides hourly snow and surface-wind forecasts; offshore NOAA GFS gives separate, less frequent upper-air snapshots.</p>
+ <h3 id="story-heading">Follow the forecast as it changes</h3>
+ <p class="small">Pick a time window and see when snow enters the NWS forecast, whether winds point toward your snowbelt, and what's still uncertain. The offshore NOAA model adds context; it cannot tell us where the heaviest band will land.</p>
  <div class="story-decision" aria-live="polite" aria-atomic="true">
  <p class="story-eyebrow">72-hour decision read · NWS-led</p>
  <h4 id="story-decision-title">Checking forecast evidence…</h4>
@@ -198,7 +214,7 @@ footer{border-top:1px solid var(--line);padding:24px 0;color:#526873;font-size:.
 </div></section>
 </main>
 <footer><div class="shell">Built by <a href="https://chrisizworski.com/chris-izworski/">Chris Izworski</a> · NOAA/NWS data are government sources; interpretation is independent and does not replace official alerts or local road authorities.</div></footer>
-<script src="/assets/lake-effect.js?v=20261101-2" defer></script>
+<script src="/assets/lake-effect.js?v=20261101-3" defer></script>
 <script src="/assets/lake-effect-explainer.js?v=20261024-1" defer></script>
 <script src="/assets/lake-effect-radar.js?v=20261025-1" defer></script>
 <script src="/assets/lake-effect-time-lens.js?v=20261101-1" defer></script>
