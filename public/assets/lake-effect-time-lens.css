@@ -62,5 +62,5 @@
 .le-lens-evidence-key .evidence-wind:before{background:#c18c38}.le-lens-evidence-key .evidence-none:before{background:#bcc7cc}
 .le-lens-evidence-key .evidence-unknown:before{background:repeating-linear-gradient(135deg,#d0d4d6 0 3px,#f1f3f4 3px 6px)}
 .le-lens-evidence .le-lens-evidence-summary{margin:8px 0 0;color:#274f60;font-size:.75rem}
-@media(max-width:380px){.le-lens-evidence{padding:10px}.le-lens-evidence-track{gap:1px}.le-lens-evidence-row{grid-template-columns:45px minmax(0,1fr)}}
+@media(max-width:380px){.le-lens-evidence{padding:10px}.le-lens-evidence-track{gap:1px}.le-lens-evidence-row{grid-template-columns:55px minmax(0,1fr)}}
 @media(prefers-reduced-motion:reduce){.le-lens-needle{transition:none!important}}
