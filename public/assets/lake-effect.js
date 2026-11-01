@@ -123,10 +123,10 @@ function evidenceReadout(d,now=Date.now()){
  if(verified&&v.official_snow_forecast===true){
   snow="NWS forecasts snow";
   detail="Snow mentioned in "+(Number(v.next_72h?.snow_forecast_hours)||0)+" of "+valid72+" available forecast hours. This does not locate a snowband.";
- }else if(verified&&valid72===72){
+ }else if(verified&&v.official_snow_forecast===false&&valid72===72){
   snow="None at checkpoint";
   detail="No NWS snow in 72 available forecast hours at this representative point. Nearby bands remain possible.";
- }else if(verified&&valid72>0){
+ }else if(verified&&v.official_snow_forecast===false&&valid72>0){
   snow="None in available hours";
   detail=valid72+" of 72 forecast hours available. Missing hours are unknown, not snow-free.";
  }
