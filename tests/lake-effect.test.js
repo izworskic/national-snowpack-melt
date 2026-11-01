@@ -103,7 +103,13 @@ test("frontend keeps source identity, crawlable content and no fake geographic b
  const ui=fs.readFileSync(path.join(__dirname,"../public/assets/lake-effect.js"),"utf8");
  assert.match(html,/rel="canonical" href="https:\/\/chrisizworski.com\/lake-effect-snow\/"/);
  assert.match(html,/Built by <a href="https:\/\/chrisizworski.com\/chris-izworski\/"/);
- for(const id of ["hours","state","region","alerts","confidence","lake-reading","status","wssi-impact","lake-ice"])assert.match(html,new RegExp('id="'+id+'"'));
+ for(const id of ["hours","state","region","alerts","forecast-coverage","snow-signal","snow-signal-detail","evidence-freshness","freshness-detail","matched","alert-count","lake-reading","status","wssi-impact","lake-ice"])assert.match(html,new RegExp('id="'+id+'"'));
+ assert.doesNotMatch(html,/id="confidence"|Evidence confidence|Not a snow probability/);
+ assert.match(html,/Lake-effect snow outlook · next 72 hours/);
+ assert.match(ui,/v\.official_snow_forecast===false&&valid72===72/);
+ assert.match(ui,/v\.official_snow_forecast===false&&valid72>0/);
+ assert.match(ui,/NWS updated /);
+ assert.doesNotMatch(ui,/text\("confidence"/);
  assert.match(ui,/geolocation/);assert.match(ui,/renderUpperAir/);assert.match(ui,/850-mb air/);assert.match(ui,/history.replaceState/);
  assert.doesNotMatch(html,/100% chance|exact snow band/i);
  new Function(ui);
