@@ -79,6 +79,8 @@ function mount(){
  $("le-lens-play").addEventListener("click",()=>timer?stop():play());
  $("le-lens-toggle").addEventListener("click",toggle);
  document.addEventListener("visibilitychange",()=>{if(document.hidden)stop()});
+ const preference=root.matchMedia?.("(prefers-reduced-motion: reduce)");
+ preference?.addEventListener?.("change",e=>{if(e.matches)stop()});
 }
 function stop(){if(timer){clearInterval(timer);timer=null}
  const b=$("le-lens-play");if(b)b.textContent="Play forecast";
