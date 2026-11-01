@@ -32,6 +32,21 @@ test("two-point decisions remain qualitative and fail closed on missing data",()
  assert.match(rules.judge(a,point("B",false,true,{stale:true}),AT,NOW).headline,/unavailable/i);
  assert.equal(rules.judge(point("A",false,false),point("B",false,false),AT,NOW).winner,null);
 });
+test("evidence ribbon samples exact three-hour NWS times without interpolating unknown hours",()=>{
+ const a=point("A",true,true),b=point("B",false,true);
+ const samples=rules.evidenceSamples(a,b,NOW,NOW);
+ assert.equal(samples.length,24);
+ assert.equal(samples[0].a.rank,null);
+ assert.equal(samples[1].at,AT);
+ assert.equal(samples[1].a.rank,3);
+ assert.equal(samples[1].b.rank,1);
+ assert.equal(samples[2].a.rank,null);
+ assert.equal(samples[23].a.rank,null);
+ assert.ok(samples.every((s,i)=>s.lead===i&&Date.parse(s.at)===NOW+i*3*3600000));
+ const unavailable=rules.evidenceSamples(a,point("B",false,true,{missing:true}),NOW,NOW);
+ assert.ok(unavailable.every(s=>s.b.rank===null));
+ assert.equal(rules.evidenceSamples(a,b,NaN,NOW).length,0);
+});
 test("source page retains one canonical, existing hourly panel, and independent radar",()=>{
  const html=fs.readFileSync("public/lake-effect-snow/index.html","utf8");
  const base=fs.readFileSync("public/assets/lake-effect.js","utf8");
@@ -44,6 +59,10 @@ test("source page retains one canonical, existing hourly panel, and independent 
  assert.match(base,/LakeEffectTimeLens\.render\(d\)/);
  assert.equal((html.match(/rel="canonical"/g)||[]).length,1);
  assert.match(lens,/prefers-reduced-motion/);
+ assert.match(lens,/function evidenceSamples/);
+ assert.match(lens,/drawEvidence\(\)/);
+ assert.match(css,/le-lens-needle/);
+ assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
  assert.match(lens,/api\/carto-basemap-config/);
  assert.match(lens,/tile\.openstreetmap\.org/);
  assert.match(lens,/aria-label="NWS forecast hour/);
