@@ -8,7 +8,7 @@ When, over the next 72 hours, do the supporting NWS snow-and-wind signals change
 
 ## Existing source and limits
 
-Existing `public/assets/lake-effect-time-lens.js` checks 72 NWS hourly forecast rows and separate point forecasts through `/api/lake-effect`. Existing official geographic layers use NOAA/NDFD six-hour grid images and distinct WPC 24-hour probability contours. This pilot modifies **neither source**, neither data model, nor the static HTML/canonical. The motion does not depict narrow lake-effect snowbands, travel safety or exact accumulation. Wind-only is never forecast snow; absent/stale hours are unknown, not clear weather.
+Existing `public/assets/lake-effect-time-lens.js` checks 72 NWS hourly forecast rows and separate point forecasts through `/api/lake-effect`. Existing official geographic layers use NOAA/NDFD six-hour grid images and distinct WPC 24-hour probability contours. This pilot modifies **neither source**, neither data model, nor the visitor-facing content/canonical (only the CSS/JS cache-bust query changes). The motion does not depict narrow lake-effect snowbands, travel safety or exact accumulation. Wind-only is never forecast snow; absent/stale hours are unknown, not clear weather.
 
 Primary source: https://www.weather.gov/documentation/services-web-api ; WPC https://www.wpc.ncep.noaa.gov/wwd/winter_wx.shtml ; NOAA NDFD https://digital.weather.gov/ ; original source evaluation in `docs/LAKE_EFFECT_DECISION_BRIEF_2026.md`.
 
@@ -39,7 +39,7 @@ Compared with Tahquamenon Falls and Sleeping Giant, this is a **forecast verific
 - Unit: exactly 24 sampled instants, three-hour valid-time spacing; missing and stale fail closed; no invented intermediate data.
 - Browser: A→B→A, slider keyboard, visual needle, map remains optional, reduced motion, unavailable source, 360/390/768/1280 screenshots and overflow checks in existing smoke.
 - Performance: native JS and scoped CSS only, no new asset or dependency; field LCP/INP/CLS **NOT MEASURED**. Human comprehension and real-device benefit **NOT MEASURED**.
-- Site integrity: no change to canonical/Person/ads/sitemap or new public route. Independent production smoke and CI are **NOT VERIFIED** until executed. Do not merge while checks fail.
+- Site integrity: no change to canonical/Person/ads/sitemap or new public route. Time-lens asset cache-bust query updated; central-site mirror must be synchronized after release. Independent production smoke and CI are **NOT VERIFIED** until executed. Do not merge while checks fail.
 - Experience OS scores: **NOT MEASURED** until actual browser artifacts and human review are inspected.
 
 **Proposed lesson:** meaningful movement can follow a *verified selection* while the forecast remains an honest sequence of discrete samples, not a video of invented weather.
