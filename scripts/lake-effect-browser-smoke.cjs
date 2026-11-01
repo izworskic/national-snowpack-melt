@@ -93,6 +93,7 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator("#snow-signal").innerText(),"NWS forecasts snow");
   assert.equal(await page.locator("#evidence-freshness").innerText(),"Current");
   assert.equal(await page.locator("#confidence").count(),0,"Ambiguous confidence badge must not be visible");
+  assert.equal(await page.evaluate(()=>!!(document.getElementById("method").compareDocumentPosition(document.getElementById("snow-evidence-layers"))&Node.DOCUMENT_POSITION_FOLLOWING)),true,"Visitor-facing readout must precede deeper technical evidence");
   assert.match(await page.locator("#matched").innerText(),/of 12 forecast hours/);
   fs.mkdirSync(path.join(__dirname,"../artifacts/lake-effect-lens"),{recursive:true});
   await page.locator("#dashboard .verdict").screenshot({path:path.join(__dirname,"../artifacts/lake-effect-lens/evidence-"+width+".png")});
