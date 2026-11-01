@@ -44,7 +44,7 @@ function renderTruthLayers(d){
   document.head.appendChild(css);
   strip=child("div",null,"snow-evidence-layers");strip.id="snow-evidence-layers";
   strip.setAttribute("aria-label","Forecast and observation evidence");
-  $("impact").after(strip);
+  $("method").after(strip);
  }
  strip.replaceChildren();
  strip.appendChild(child("h3","Three different kinds of snow evidence"));
