@@ -4,10 +4,10 @@ const {REGIONS}=require("../lib/lake-effect");
 const now=Date.now(),ts=h=>new Date(now+h*3600000).toISOString();
 const hours=Array.from({length:72},(_,i)=>({at:ts(i),temperature_f:26,wind_from:i<24?"NW":"W",wind_speed_text:"12 mph",forecast_snow:i>=18&&i<28,
  wind_aligned:true,short_forecast:i>=18&&i<28?"Snow Showers":"Cloudy",evidence:i>=18&&i<28?"snow-and-alignment":"wind-only"}));
-function fixture(id){return {status:"ok",region:REGIONS.find(r=>r.id===id)||REGIONS[0],generated_at:ts(0),forecast_updated:ts(0),
- alerts_status:"available",alerts:[{event:"Lake Effect Snow Warning",headline:"Snowbelt statement",lakeEffect:true,url:"https://api.weather.gov/alerts/mock"}],
+function fixture(id){return {status:"ok",region:REGIONS.find(r=>r.id===id)||REGIONS[0],generated_at:ts(0),forecast_updated:ts(id==="mi-traverse"?-20:0),
+ alerts_status:"available",alerts:id==="ny-oswego"?[]:[{event:"Lake Effect Snow Warning",headline:"Snowbelt statement",lakeEffect:true,url:"https://api.weather.gov/alerts/mock"}],
  lake_temperature:{status:"available",fahrenheit:42,celsius:5.6,date:ts(-24)},
- verdict:{headline:"Forecast change likely later",impact:"Watch changing conditions",confidence:"medium",timing_window:"12–24 hours",first_12h:{overlap_hours:0,valid_hours:12},official_warning:id==="ny-tug-hill",data_ok:id!=="mi-traverse"},
+ verdict:{level:id==="ny-oswego"?"limited":id==="mi-traverse"?"insufficient":"favored",headline:id==="ny-oswego"?"No strong near-term lake-effect signal":"Forecast change likely later",impact:"Watch changing conditions",confidence:"medium",timing_window:"12–24 hours",first_12h:{overlap_hours:0,valid_hours:id==="mi-traverse"?3:12},next_72h:{snow_forecast_hours:id==="ny-oswego"?0:10},official_snow_forecast:id!=="ny-oswego",official_lake_effect_alert:false,official_warning:id==="ny-tug-hill",data_ok:id!=="mi-traverse"},
  observed_snowfall:id==="mi-marquette"?{status:"reported_nearby",label:"Nearby snowfall reported",detail:"Dated observations within 50 km.",source:"https://mesonet.agron.iastate.edu/geojson/lsr.geojson?wfos=MQT",reports:[{time:ts(-3),city:"4 NW Sands",amount_in:6.9,distance_km:12,source_name:"CO-OP Observer"}]}:{status:"unverified",detail:"No qualifying snow reports; this does not mean no snow fell.",reports:[],source:"https://mesonet.agron.iastate.edu/geojson/lsr.geojson?wfos=BUF"},
  upper_air:{status:id==="mi-gaylord"?"stale":"available",issued_at:ts(-6),current:{valid_at:ts(0),temp_850_c:-10,wind_850_from_deg:310,wind_925_from_deg:320,shear_925_850_deg:10,delta_t_c:15,instability_screen:"favorable-contrast",shear_screen:"modest-turning"},forecast:[0,6,12,18,24,36,48,60,72].map((h,i)=>({valid_at:ts(h),temp_850_c:-10+i,wind_850_from_deg:310-i*3,wind_925_from_deg:320,shear_925_850_deg:10+i*4,delta_t_c:15-i}))},
  hours:id==="mi-traverse"?hours.slice(0,3):id==="ny-oswego"?hours.map(h=>({...h,forecast_snow:false,short_forecast:"Cloudy",evidence:"wind-only"})):hours,sources:{nws_hourly:"https://api.weather.gov/points/46,-87",nws_alerts:"https://api.weather.gov/alerts/active"},
@@ -89,7 +89,11 @@ const server=http.createServer((req,res)=>{
   });
   await page.goto("http://127.0.0.1:"+server.address().port+"/lake-effect-snow/?region=mi-marquette",{waitUntil:"networkidle"});
   await page.locator("#headline").waitFor({state:"visible"});
-  assert.equal(await page.locator("#confidence").innerText(),"MEDIUM");
+  assert.equal(await page.locator("#forecast-coverage").innerText(),"12 of 12 hours");
+  assert.equal(await page.locator("#snow-signal").innerText(),"NWS forecasts snow");
+  assert.equal(await page.locator("#evidence-freshness").innerText(),"Current");
+  assert.equal(await page.locator("#confidence").count(),0,"Ambiguous confidence badge must not be visible");
+  assert.match(await page.locator("#matched").innerText(),/of 12 forecast hours/);
   assert.equal(await page.locator("#snow-evidence-layers .snow-evidence-item").count(),3);
   assert.match(await page.locator("#snow-evidence-layers").innerText(),/Snow reported nearby/);
   assert.match(await page.locator("#snow-evidence-layers").innerText(),/6.9 inches reported at 4 NW Sands/);
@@ -365,6 +369,10 @@ const server=http.createServer((req,res)=>{
   await page.locator("#check").click();
   await page.waitForFunction(()=>new URL(location.href).searchParams.get("region")==="ny-oswego");
   assert.equal((await page.locator("#lake-name").innerText()).toLowerCase(),"lake ontario");
+   assert.equal(await page.locator("#headline").innerText(),"No snow signal identified");
+   assert.equal(await page.locator("#snow-signal").innerText(),"None at checkpoint");
+   assert.match(await page.locator("#snow-signal-detail").innerText(),/72 available forecast hours/);
+   assert.equal(await page.locator("#forecast-coverage").innerText(),"12 of 12 hours");
   assert.match(await page.locator("#snow-evidence-layers").innerText(),/Not verified/);
   assert.doesNotMatch(await page.locator("#snow-evidence-layers").innerText(),/6.9 inches reported/);
   await page.waitForFunction(()=>document.getElementById("radar-directions").href.includes("43.45"));
@@ -381,6 +389,9 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator("#radar-play").isDisabled(),true,"Stale radar must not play old frames");
   await page.locator("#region").selectOption("mi-traverse");await page.locator("#check").click();
   await page.waitForFunction(()=>new URL(location.href).searchParams.get("region")==="mi-traverse");
+   assert.equal(await page.locator("#snow-signal").innerText(),"Not verified");
+   assert.equal(await page.locator("#forecast-coverage").innerText(),"3 of 12 hours");
+   assert.equal(await page.locator("#evidence-freshness").innerText(),"Stale or unverified");
   assert.match(await page.locator("#story-decision-title").innerText(),/fresh check/);
   assert.match(await page.locator("#story-decision-copy").innerText(),/incomplete or stale/);
   await page.locator("#state").selectOption("NY");await page.locator("#region").selectOption("ny-tug-hill");await page.locator("#check").click();
