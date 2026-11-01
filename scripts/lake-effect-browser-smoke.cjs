@@ -94,6 +94,9 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator("#evidence-freshness").innerText(),"Current");
   assert.equal(await page.locator("#confidence").count(),0,"Ambiguous confidence badge must not be visible");
   assert.match(await page.locator("#matched").innerText(),/of 12 forecast hours/);
+  fs.mkdirSync(path.join(__dirname,"../artifacts/lake-effect-lens"),{recursive:true});
+  await page.locator("#dashboard .verdict").screenshot({path:path.join(__dirname,"../artifacts/lake-effect-lens/evidence-"+width+".png")});
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),"Evidence summary must not overflow body");
   assert.equal(await page.locator("#snow-evidence-layers .snow-evidence-item").count(),3);
   assert.match(await page.locator("#snow-evidence-layers").innerText(),/Snow reported nearby/);
   assert.match(await page.locator("#snow-evidence-layers").innerText(),/6.9 inches reported at 4 NW Sands/);
