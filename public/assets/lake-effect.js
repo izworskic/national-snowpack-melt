@@ -44,7 +44,7 @@ function renderTruthLayers(d){
   document.head.appendChild(css);
   strip=child("div",null,"snow-evidence-layers");strip.id="snow-evidence-layers";
   strip.setAttribute("aria-label","Forecast and observation evidence");
-  $("impact").after(strip);
+  $("method").after(strip);
  }
  strip.replaceChildren();
  strip.appendChild(child("h3","Three different kinds of snow evidence"));
@@ -107,14 +107,53 @@ function renderUpperAir(d){
  box.appendChild(child("p","The water value is a dated lakewide average; air and shear are coarse GFS model values. Inversions, humidity and local fetch remain unresolved.","small"));
  const cite=child("a","NOAA GFS pressure-level model data");cite.href="https://nomads.ncep.noaa.gov/";cite.target="_blank";cite.rel="noopener";box.appendChild(cite);
 }
+// Visitor-facing status separates forecast completeness from actual snow signals.
+function evidenceReadout(d,now=Date.now()){
+ const v=d.verdict||{},first=v.first_12h||{};
+ const valid12=Math.min(12,Math.max(0,Number(first.valid_hours)||0));
+ const sampledAt=Date.parse(d.generated_at||"");
+ const updatedAt=Date.parse(d.forecast_updated||"");
+ const fresh=Number.isFinite(updatedAt)&&updatedAt<=now+3600000&&now-updatedAt<=12*3600000;
+ const referenceTime=Number.isFinite(sampledAt)?sampledAt:now;
+ const periodStart=Math.floor(referenceTime/3600000)*3600000;
+ const valid72=new Set((Array.isArray(d.hours)?d.hours:[]).map(h=>Date.parse(h.at||""))
+  .filter(t=>Number.isFinite(t)&&t>=periodStart&&t<periodStart+72*3600000)).size;
+ const verified=v.data_ok===true&&fresh;
+ let snow="Not verified",detail="The NWS point forecast is incomplete or stale; no snow conclusion is possible.";
+ if(verified&&v.official_snow_forecast===true){
+  snow="NWS forecasts snow";
+  detail="Snow mentioned in "+(Number(v.next_72h?.snow_forecast_hours)||0)+" of "+valid72+" available forecast hours. This does not locate a snowband.";
+ }else if(verified&&v.official_snow_forecast===false&&valid72===72){
+  snow="None at checkpoint";
+  detail="No NWS snow in 72 available forecast hours at this representative point. Nearby bands remain possible.";
+ }else if(verified&&v.official_snow_forecast===false&&valid72>0){
+  snow="None in available hours";
+  detail=valid72+" of 72 forecast hours available. Missing hours are unknown, not snow-free.";
+ }
+ if((v.official_warning||v.official_lake_effect_alert)&&v.official_snow_forecast!==true)
+  detail+=" An official winter alert may still apply; read its location and timing.";
+ return {
+  coverage:valid12+" of 12 hours",
+  coverageDetail:first.wind_unknown_hours>0?"Wind direction missing for "+first.wind_unknown_hours+" of "+valid12+" available hours.":"First 12 NWS hourly forecast slots",
+  snow,detail,
+  freshness:fresh?"Current":"Stale or unverified",
+  freshnessDetail:fresh?"NWS updated "+formatDate(d.forecast_updated)+".":"NWS issue time is missing or more than 12 hours old.",
+  heading:verified&&valid72===72&&v.level==="limited"&&!v.official_warning&&!v.official_lake_effect_alert?
+   "No snow signal identified":v.headline,
+  valid72
+ };
+}
 function render(d){
  const v=d.verdict||{},region=d.region||{};
- text("headline",label(v.headline));text("impact",label(v.impact)+(v.model_caution?" "+v.model_caution:""));text("timing-window",label(v.timing_window));
- text("confidence",label(v.confidence).toUpperCase());
- text("matched",label(v.first_12h?.overlap_hours,"0")+" / "+label(v.first_12h?.valid_hours,"0"));
+ const evidence=evidenceReadout(d);
+ text("headline",label(evidence.heading));text("impact",label(v.impact)+(v.model_caution?" "+v.model_caution:""));text("timing-window",label(v.timing_window));
+ text("forecast-coverage",evidence.coverage);
+ text("snow-signal",evidence.snow);text("snow-signal-detail",evidence.detail);
+ text("evidence-freshness",evidence.freshness);text("freshness-detail",evidence.freshnessDetail);
+ text("matched",label(v.first_12h?.overlap_hours,"0")+" of "+label(v.first_12h?.valid_hours,"0")+" forecast hours");
  text("alert-count",d.alerts_status==="available"?String(d.alerts?.length||0):"Unknown");
- text("alert-status",d.alerts_status==="available"?"Active regional point alerts":"Alert source unavailable");
- text("method",(region.description||region.name)+". Confidence is qualitative evidence agreement, not a probability or a forecast of exact band placement."+(v.first_12h?.wind_unknown_hours>0?" NWS wind direction is missing in "+v.first_12h.wind_unknown_hours+" of the next "+v.first_12h.valid_hours+" hours; confidence is reduced.":""));
+ text("alert-status",d.alerts_status==="available"?(d.alerts?.length?" · Check current NWS notices.":" · None returned at this point."):" · Alert source unavailable; verify with NWS.");
+ text("method",(region.description||region.name)+". Forecast coverage and NWS freshness describe source availability, not snowfall probability or exact snowband placement."+(v.first_12h?.wind_unknown_hours>0?" Wind direction is missing for "+v.first_12h.wind_unknown_hours+" of the first "+v.first_12h.valid_hours+" forecast hours.":""));
  clear("alerts");
  if(d.alerts_status!=="available"){
   $("alerts").appendChild(child("p","Official alert feed unavailable. Verify with weather.gov before travel.")); 
