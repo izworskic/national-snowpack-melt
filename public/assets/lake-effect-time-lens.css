@@ -53,8 +53,8 @@
 .le-lens-evidence-track{position:relative;display:grid;grid-template-columns:repeat(24,minmax(0,1fr));gap:2px;min-height:23px;align-items:center;padding:4px 0;--le-needle:2.0833%}
 .le-lens-sample{height:16px;border-radius:2px;min-width:0;background:#bcc7cc}
 .le-lens-needle{position:absolute;left:var(--le-needle);top:0;bottom:0;width:3px;transform:translateX(-50%);border-radius:2px;background:#132f3f;box-shadow:0 0 0 1px white,0 0 0 2px #132f3f;pointer-events:none;transition:left 190ms ease-out}
-.evidence-overlap{background:#087d87}.evidence-snow{background:#5665a6}.evidence-wind{background:#c18c38}.evidence-none{background:#bcc7cc}
-.evidence-unknown{background:repeating-linear-gradient(135deg,#d0d4d6 0 3px,#f1f3f4 3px 6px)}
+.le-lens-sample.evidence-overlap{background:#087d87}.le-lens-sample.evidence-snow{background:#5665a6}.le-lens-sample.evidence-wind{background:#c18c38}.le-lens-sample.evidence-none{background:#bcc7cc}
+.le-lens-sample.evidence-unknown{background:repeating-linear-gradient(135deg,#d0d4d6 0 3px,#f1f3f4 3px 6px)}
 .le-lens-evidence-key{display:flex;flex-wrap:wrap;gap:5px 11px;font-size:.67rem;color:#47616f;margin:7px 0}
 .le-lens-evidence-key span{display:inline-flex;align-items:center;gap:5px}
 .le-lens-evidence-key span:before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;background:currentColor}
