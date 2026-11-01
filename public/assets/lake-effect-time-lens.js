@@ -34,7 +34,15 @@ function judge(a,b,at,now=Date.now()){
  return{x,y,winner,headline:"Stronger hourly evidence at checkpoint "+winner.toUpperCase(),
   detail:v.rank===3?"NWS forecast snow overlaps the broad snowbelt wind screen at this point, unlike the other checkpoint. This does not determine road safety or a precise snowband.":v.rank===2?"An NWS point forecast mentions snow here, but a lake-effect band position has not been established.":"Only the wind screen is aligned. Neither point forecasts snow, so no snow opportunity is established."};
 }
-if(typeof module!=="undefined"&&module.exports)module.exports={verified,signal,judge};
+// Discrete NWS point samples only: no interpolation of snowband geography or missing hours.
+function evidenceSamples(a,b,startMs,now=Date.now()){
+ if(!Number.isFinite(startMs))return [];
+ return Array.from({length:MAX+1},(_,lead)=>{
+  const at=new Date(startMs+lead*3*H).toISOString();
+  return {lead,at,a:signal(a,at,now),b:signal(b,at,now)};
+ });
+}
+if(typeof module!=="undefined"&&module.exports)module.exports={verified,signal,judge,evidenceSamples};
 if(typeof document==="undefined")return;
 const $=id=>document.getElementById(id),mk=(t,cl,txt)=>{const n=document.createElement(t);if(cl)n.className=cl;if(txt!==undefined)n.textContent=txt;return n};
 const fmt=ms=>new Intl.DateTimeFormat(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}).format(new Date(ms));
@@ -51,6 +59,12 @@ function mount(){
  '<div class="le-lens-controls"><div><span>Forecast valid time (your device time)</span><strong id="le-lens-time">Waiting for forecast…</strong></div>'+
  '<div class="le-lens-steps"><button type="button" id="le-lens-prev">− 3h</button><input id="le-lens-slider" type="range" min="0" max="23" value="0" step="1" aria-label="NWS forecast hour, three hours per step"><button type="button" id="le-lens-next">+ 3h</button><button type="button" id="le-lens-play">Play forecast</button></div>'+
  '<div class="le-lens-ticks"><span>First hour</span><span>+24h</span><span>+48h</span><span>+69h</span></div></div>'+
+ '<div class="le-lens-evidence" aria-labelledby="le-lens-evidence-title"><strong id="le-lens-evidence-title">See when the supporting evidence changes</strong>'+
+ '<p>Two NWS point forecasts sampled every three hours. Each block represents that instant, <strong>not a moving snowband</strong> or a continuous snowfall forecast.</p>'+
+ '<div class="le-lens-evidence-row"><span>Point A</span><div class="le-lens-evidence-track" id="le-lens-evidence-a" aria-hidden="true"></div></div>'+
+ '<div class="le-lens-evidence-row"><span>Point B</span><div class="le-lens-evidence-track" id="le-lens-evidence-b" aria-hidden="true"></div></div>'+
+ '<div class="le-lens-evidence-key" aria-hidden="true"><span class="evidence-overlap">Snow + wind</span><span class="evidence-snow">Snow</span><span class="evidence-wind">Wind only</span><span class="evidence-none">Neither</span><span class="evidence-unknown">Unknown</span></div>'+
+ '<p id="le-lens-evidence-summary" class="le-lens-evidence-summary">Checking 24 forecast samples for each checkpoint.</p></div>'+
  '<div class="le-lens-answer" id="le-lens-answer" aria-live="polite"><strong id="le-lens-heading">Loading official evidence…</strong><p id="le-lens-why"></p></div>'+
  '<div class="le-lens-cards"><article><span>Checkpoint A · selected snowbelt</span><h5 id="le-lens-a-name"></h5><p id="le-lens-a-state"></p><p id="le-lens-a-words"></p><a id="le-lens-a-link" href="https://www.weather.gov/" target="_blank" rel="noopener noreferrer">Official NWS forecast</a></article>'+
  '<article><span>Checkpoint B · comparison</span><h5 id="le-lens-b-name"></h5><p id="le-lens-b-state"></p><p id="le-lens-b-words"></p><a id="le-lens-b-link" href="https://www.weather.gov/" target="_blank" rel="noopener noreferrer">Official NWS forecast</a></article></div>'+
@@ -65,6 +79,8 @@ function mount(){
  $("le-lens-play").addEventListener("click",()=>timer?stop():play());
  $("le-lens-toggle").addEventListener("click",toggle);
  document.addEventListener("visibilitychange",()=>{if(document.hidden)stop()});
+ const preference=root.matchMedia?.("(prefers-reduced-motion: reduce)");
+ preference?.addEventListener?.("change",e=>{if(e.matches)stop()});
 }
 function stop(){if(timer){clearInterval(timer);timer=null}
  const b=$("le-lens-play");if(b)b.textContent="Play forecast";
@@ -88,6 +104,26 @@ function words(id,d,s){
  try{const u=new URL(source);if(u.protocol==="https:"&&u.hostname==="api.weather.gov")link=u.href}catch{}
  $(id+"-link").href=link;
 }
+function drawEvidence(){
+ const samples=evidenceSamples(primary,secondary,start);
+ if(!samples.length)return;
+ const nameOf=rank=>rank===null?"unknown":rank===3?"overlap":rank===2?"snow":rank===1?"wind":"none";
+ const counts=[];
+ for(const [point,key] of [["a","A"],["b","B"]]){
+  const track=$("le-lens-evidence-"+point),ranks=samples.map(s=>s[point].rank);
+  const signature=ranks.map(n=>n===null?"?":n).join(",");
+  if(track.dataset.signature!==signature){
+   const cells=ranks.map(n=>{const e=mk("span","le-lens-sample evidence-"+nameOf(n));return e});
+   const needle=mk("span","le-lens-needle");
+   track.replaceChildren(...cells,needle);
+   track.dataset.signature=signature;
+  }
+  track.style.setProperty("--le-needle",((lead+.5)/samples.length*100).toFixed(4)+"%");
+  const overlap=ranks.filter(n=>n===3).length,unknown=ranks.filter(n=>n===null).length;
+  counts.push(key+": "+overlap+" snow-and-wind samples"+(unknown?", "+unknown+" unverified":""));
+ }
+ $("le-lens-evidence-summary").textContent="Among 24 three-hour samples per checkpoint, "+counts.join("; ")+". Unknown blocks are not snow-free.";
+}
 function paint(){
  if(!primary||start===null)return;
  const at=new Date(start+lead*3*H).toISOString(),j=judge(primary,secondary,at);
@@ -98,6 +134,7 @@ function paint(){
  $("le-lens-heading").textContent=j.winner?"More supporting signals: "+(j.winner==="a"?primary.region.name:secondary.region.name):j.headline;
  $("le-lens-why").textContent=j.detail;
  words("le-lens-a",primary,j.x);words("le-lens-b",secondary,j.y);
+ drawEvidence();
  const warnings=[primary,secondary].filter(r=>r?.verdict?.official_warning).map(r=>r.region.name);
  const missing=[primary,secondary].filter(r=>r?.status==="ok"&&r.alerts_status!=="available").map(r=>r.region.name);
  $("le-lens-caution").textContent=(warnings.length?"NWS warning active at retrieval for "+warnings.join(", ")+". It may not cover this future hour. ":"")+
