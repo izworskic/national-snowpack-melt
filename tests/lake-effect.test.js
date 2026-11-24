@@ -108,7 +108,7 @@ test("frontend keeps source identity, crawlable content and no fake geographic b
  for(const id of ["forecast-story-heading","forecast-story-lead","forecast-story-why","forecast-story-next"])assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(html,/not a forecast issued by a meteorologist/);
  assert.match(html,/https:\/\/www\.weather\.gov\/apx\/les/);
- assert.match(html,/lake-effect\.js\?v=20261101-3/);
+ assert.match(html,/lake-effect\.js\?v=20261124-1/);
  assert.match(ui,/function forecastStory\(d,evidence\)/);
  assert.match(ui,/if\(v\.official_warning===true\)/);
  assert.match(ui,/else if\(!verified\)/);
