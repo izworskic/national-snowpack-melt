@@ -29,9 +29,9 @@ function hours(hs){
   const title=formatTime(h.at);
   item.appendChild(child("em",title));
   item.appendChild(child("strong",h.temperature_f==null?"—":h.temperature_f+"°F"));
-  item.appendChild(child("p","Wind: "+label(h.wind_from,"?")+" "+(h.wind_speed_text||"")));
+  item.appendChild(child("p","Wind: "+(h.wind_calm===true?"Calm":label(h.wind_from,"?"))+" "+(h.wind_speed_text||"")));
   item.appendChild(child("p",h.forecast_snow?"NWS: snow":h.wind_aligned?"Wind favorable":"No overlap"));
-  item.title=title+" · "+label(h.short_forecast)+" · wind "+label(h.wind_from);
+  item.title=title+" · "+label(h.short_forecast)+" · wind "+(h.wind_calm===true?"calm":label(h.wind_from));
   $("hours").appendChild(item);
  });
 }
@@ -134,7 +134,7 @@ function evidenceReadout(d,now=Date.now()){
   detail+=" An official winter alert may still apply; read its location and timing.";
  return {
   coverage:valid12+" of 12 hours",
-  coverageDetail:first.wind_unknown_hours>0?"Wind direction missing for "+first.wind_unknown_hours+" of "+valid12+" available hours.":"First 12 NWS hourly forecast slots",
+  coverageDetail:(first.wind_calm_hours>0?first.wind_calm_hours+" calm hours (0 mph). ":"")+(first.wind_unknown_hours>0?"Wind evidence missing for "+first.wind_unknown_hours+" of "+valid12+" available hours.":"First 12 NWS hourly forecast slots"),
   snow,detail,
   freshness:fresh?"Current":"Stale or unverified",
   freshnessDetail:fresh?"NWS updated "+formatDate(d.forecast_updated)+".":"NWS issue time is missing or more than 12 hours old.",
@@ -211,7 +211,7 @@ function render(d){
  text("matched",label(v.first_12h?.overlap_hours,"0")+" of "+label(v.first_12h?.valid_hours,"0")+" forecast hours");
  text("alert-count",d.alerts_status==="available"?String(d.alerts?.length||0):"Unknown");
  text("alert-status",d.alerts_status==="available"?(d.alerts?.length?" · Check current NWS notices.":" · None returned at this point."):" · Alert source unavailable; verify with NWS.");
- text("method",(region.description||region.name)+". Forecast coverage and NWS freshness describe source availability, not snowfall probability or exact snowband placement."+(v.first_12h?.wind_unknown_hours>0?" Wind direction is missing for "+v.first_12h.wind_unknown_hours+" of the first "+v.first_12h.valid_hours+" forecast hours.":""));
+ text("method",(region.description||region.name)+". Forecast coverage and NWS freshness describe source availability, not snowfall probability or exact snowband placement."+(v.first_12h?.wind_unknown_hours>0?" Wind evidence is missing for "+v.first_12h.wind_unknown_hours+" of the first "+v.first_12h.valid_hours+" forecast hours.":""));
  clear("alerts");
  if(d.alerts_status!=="available"){
   $("alerts").appendChild(child("p","Official alert feed unavailable. Verify with weather.gov before travel.")); 

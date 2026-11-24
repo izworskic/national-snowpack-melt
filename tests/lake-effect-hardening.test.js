@@ -85,3 +85,23 @@ test("documented November 2025 Buffalo-area SW to WNW shift changes favored expo
  assert.equal(oswego.timing_window,"12–24 hours");
  assert.notEqual(oswego.confidence,"high");
 });
+
+test("explicit calm forecast is valid evidence, never directional alignment",()=>{
+ const gaylord=M.allowed["mi-gaylord"];
+ const periods=Array.from({length:12},(_,i)=>({...hour(i,i<2?"W":null),windSpeed:i<2?"5 mph":"0 mph"}));
+ const hours=M.hourRows(periods,gaylord.windSector,NOW);
+ const evaluate=(rows,updated=NOW)=>M.assess({region:gaylord,hours:rows,alerts:[],lakeTemp:{status:"available"},forecastUpdated:new Date(updated).toISOString(),now:NOW});
+ const v=evaluate(hours);
+ assert.equal(v.data_ok,true);assert.equal(v.level,"limited");assert.equal(v.confidence,"low");
+ assert.equal(v.first_12h.valid_hours,12);assert.equal(v.first_12h.wind_known_hours,2);
+ assert.equal(v.first_12h.wind_calm_hours,10);assert.equal(v.first_12h.wind_evidence_hours,12);assert.equal(v.first_12h.wind_unknown_hours,0);
+ assert.equal(v.first_12h.wind_aligned_hours,2);assert.equal(v.first_12h.overlap_hours,0);
+ for(const h of hours.slice(2)){assert.equal(h.wind_calm,true);assert.equal(h.wind_degrees,null);assert.equal(h.wind_aligned,false);}
+ assert.equal(evaluate(hours,NOW-13*3600000).data_ok,false);
+ const snow=M.hourRows(periods.map(p=>({...p,windDirection:"W",windSpeed:"0 mph",shortForecast:"Snow Showers"})),gaylord.windSector,NOW);
+ const s=evaluate(snow);assert.equal(s.level,"forecast-snow");assert.equal(s.first_12h.overlap_hours,0);assert.equal(s.first_12h.wind_known_hours,0);
+ for(const speed of ["0 to 5 mph","5 mph","",null]){
+  const rows=M.hourRows(periods.map(p=>({...p,windDirection:null,windSpeed:speed})),gaylord.windSector,NOW);
+  assert.equal(evaluate(rows).data_ok,false);assert.equal(evaluate(rows).first_12h.wind_unknown_hours,12);
+ }
+});
