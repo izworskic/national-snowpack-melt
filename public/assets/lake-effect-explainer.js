@@ -37,7 +37,7 @@ function windowSignals(index){
  snow=list.filter(h=>h.forecast_snow).length,
  overlap=list.filter(h=>h.forecast_snow&&h.wind_aligned===true).length,
  wind=list.filter(h=>h.wind_aligned===true).length,
- missing=list.filter(h=>h.wind_degrees==null).length;
+ missing=list.filter(h=>h.wind_state!=="calm"&&h.wind_degrees==null).length;
  const coverage=list.length>=Math.max(6,Math.ceil(total*0.60));
  const kind=!coverage?"gap":overlap>=2?"converging":snow>=1?"nws-snow":wind>=1?"wind-only":"limited";
  const note=kind==="gap"?"Forecast coverage incomplete":
@@ -109,7 +109,7 @@ function shortNarrative(h,windowIndex){
  const validCount=h.length,snow=h.filter(v=>v.forecast_snow).length,
  aligned=h.filter(v=>v.wind_aligned===true).length,
  together=h.filter(v=>v.forecast_snow&&v.wind_aligned===true).length,
- missing=h.filter(v=>v.wind_degrees==null).length,
+ missing=h.filter(v=>v.wind_state!=="calm"&&v.wind_degrees==null).length,
  poor=h.filter(v=>v.rain).length;
  let title,body;
  if(!validCount){title="Forecast hours unavailable";body="This window has no validated NWS hourly rows. No regional lake-effect inference is possible."}
@@ -217,7 +217,7 @@ function paint(){
  (data.hours||[]).filter(x=>valid(x.at)).slice(0,72).forEach(v=>{
   const w=RANGES.findIndex(z=>{const delta=(ms(v.at)-rows().first)/HOUR;return delta>=z.from&&delta<z.to});
   const button=el("button",null,"story-hour"+(w===selectedWindow?" in-window":"")+(selectedHour===v.at?" active":""));
-  button.type="button";button.setAttribute("aria-label",fmt(v.at)+": "+(v.forecast_snow?"NWS forecasts snow":(v.short_forecast||"No forecast snow"))+"; wind "+(v.wind_aligned===true?"regionally favorable":v.wind_aligned===null?"not reported":"not aligned"));
+  button.type="button";button.setAttribute("aria-label",fmt(v.at)+": "+(v.forecast_snow?"NWS forecasts snow":(v.short_forecast||"No forecast snow"))+"; wind "+(v.wind_state==="calm"?"calm":v.wind_aligned===true?"regionally favorable":v.wind_aligned===null?"not reported":"not aligned"));
   button.title=button.getAttribute("aria-label");
   button.dataset.kind=v.forecast_snow&&v.wind_aligned===true?"both":v.forecast_snow?"snow":v.wind_aligned===true?"wind":"other";
   button.setAttribute("aria-pressed",String(selectedHour===v.at));

@@ -85,3 +85,47 @@ test("documented November 2025 Buffalo-area SW to WNW shift changes favored expo
  assert.equal(oswego.timing_window,"12–24 hours");
  assert.notEqual(oswego.confidence,"high");
 });
+
+test("Gaylord Nov 24 production failure shape: three directional and nine explicitly calm hours",()=>{
+ const r=M.allowed["mi-gaylord"],now=Date.parse("2026-11-24T20:14:45Z"),start=Math.floor(now/3600000)*3600000;
+ const periods=Array.from({length:12},(_,i)=>({startTime:new Date(start+i*3600000).toISOString(),windDirection:i<3?"W":null,windSpeed:i<3?"5 mph":"0 mph",temperature:28,shortForecast:"Mostly Cloudy"}));
+ const hours=M.hourRows(periods,r.windSector,now);
+ const v=M.assess({region:r,hours,alerts:[],lakeTemp:{status:"available"},forecastUpdated:"2026-11-24T19:38:41Z",now});
+ assert.equal(v.data_ok,true);
+ assert.equal(v.first_12h.valid_hours,12);
+ assert.equal(v.first_12h.wind_known_hours,12);
+ assert.equal(v.first_12h.wind_direction_known_hours,3);
+ assert.equal(v.first_12h.wind_calm_hours,9);
+ assert.equal(v.first_12h.wind_unknown_hours,0);
+ assert.equal(v.first_12h.wind_aligned_hours,3);
+ assert.equal(v.level,"limited");
+ assert.ok(hours.slice(3).every(h=>h.wind_state==="calm"&&h.wind_degrees===null&&h.wind_aligned===false&&h.wind_from==="Calm"));
+});
+test("calm is never favorable flow, including when the provider includes a directional field",()=>{
+ const periods=Array.from({length:12},(_,i)=>({...hour(i,"NW","Snow Showers"),windSpeed:"0 mph"}));
+ const rows=M.hourRows(periods,region.windSector,NOW),v=verdict(periods);
+ assert.equal(v.data_ok,true);assert.equal(v.first_12h.wind_calm_hours,12);
+ assert.equal(v.first_12h.wind_direction_known_hours,0);
+ assert.equal(v.first_12h.wind_aligned_hours,0);
+ assert.equal(v.first_12h.overlap_hours,0);
+ assert.equal(v.level,"forecast-snow");
+ assert.ok(rows.every(h=>h.wind_degrees===null&&h.wind_aligned===false));
+ assert.equal(verdict(periods,NOW-13*3600000).data_ok,false);
+ assert.equal(verdict(periods.slice(0,5)).data_ok,false);
+});
+test("missing, malformed, nonzero and ranged speed are not calm evidence",()=>{
+ for(const speed of [null,undefined,""," ","Calm","0","0 to 5 mph","0-5 mph","5 mph","0 knots",0,false]){
+  const rows=M.hourRows([{...hour(0,null),windSpeed:speed}],region.windSector,NOW);
+  assert.equal(rows[0].wind_state,"unknown",String(speed));
+  assert.equal(rows[0].wind_aligned,null);
+ }
+ for(const dir of [null,undefined,""," ",false,true,"bogus","361","-1"]){
+  assert.equal(M.bearing(dir),null);
+ }
+ assert.equal(M.bearing(0),0);assert.equal(M.bearing("0"),0);
+ const periods=Array.from({length:12},(_,i)=>({...hour(i,i<3?"NW":null),windSpeed:i<3?"5 mph":null}));
+ assert.equal(verdict(periods).data_ok,false);
+ for(const speed of ["0 mph","0.0 mph"," 0 MPH "]){
+  assert.equal(M.hourRows([{...hour(0,null),windSpeed:speed}],region.windSector,NOW)[0].wind_state,"calm");
+ }
+});
