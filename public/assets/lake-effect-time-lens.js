@@ -10,8 +10,8 @@ const SIGNAL={
  unknown:{rank:null,label:"This forecast hour cannot be verified",color:"#778994"}
 };
 function verified(d,now=Date.now()){
- const t=Date.parse(d?.forecast_updated||"");
- return d?.status==="ok"&&d?.verdict?.data_ok===true&&Number.isFinite(t)&&t<=now+H&&now-t<=12*H;
+ const t=Date.parse(d?.forecast_updated||""),sample=Date.parse(d?.generated_at||"");
+ return Number.isFinite(sample)&&sample<=now+60000&&now-sample<=50*60000&&d?.status==="ok"&&d?.verdict?.data_ok===true&&Number.isFinite(t)&&t<=now+H&&now-t<=12*H;
 }
 function signal(d,at,now=Date.now()){
  if(!verified(d,now))return {...SIGNAL.unknown,why:"Fresh NWS forecast timing or first-window coverage is not confirmed."};
@@ -182,7 +182,26 @@ async function render(d){
   lead=Number.isInteger(requested)&&requested>=0&&requested<=69&&requested%3===0?requested/3:0;
   if(choice===d.region.id)choice=null;secondary=null;
  }
- if(start===null){$("le-lens-heading").textContent="NWS forecast hours unavailable";$("le-lens-why").textContent="No time comparison can be made.";return}
+ if(start===null){
+  ++token;if(request)request.abort();secondary=null;lead=0;
+  $("le-lens-a-choice").textContent=d.region.name;
+  $("le-lens-time").textContent="No verified forecast hour";
+  for(const id of ["le-lens-select","le-lens-slider","le-lens-prev","le-lens-next","le-lens-play","le-lens-toggle"])$(id).disabled=true;
+  $("le-lens-select").replaceChildren();
+  $("le-lens-slider").value="0";$("le-lens-slider").removeAttribute("aria-valuetext");
+  $("le-lens-heading").textContent="NWS forecast hours unavailable";$("le-lens-why").textContent="No time comparison can be made.";
+  const unavailable={...SIGNAL.unknown,why:"No verified current comparison hour."};
+  words("le-lens-a",d,unavailable);words("le-lens-b",null,unavailable);
+  for(const id of ["le-lens-evidence-a","le-lens-evidence-b"]){$(id).replaceChildren();delete $(id).dataset.signature;}
+  $("le-lens-evidence-summary").textContent="No verified comparison samples.";
+  $("le-lens-caution").textContent="Check current official NWS alerts separately. No travel or snowband decision can be made.";
+  if(map){for(const marker of markers)if(marker)map.removeLayer(marker);markers=[];mapBoundsKey="";}
+  open=false;$("le-lens-map-holder").hidden=true;$("le-lens-toggle").textContent="Show map";
+  $("le-lens-osm").href="https://www.openstreetmap.org/";
+  $("le-lens-map-status").textContent="No verified comparison points to display.";
+  return;
+ }
+ for(const id of ["le-lens-select","le-lens-slider","le-lens-play","le-lens-toggle"])$(id).disabled=false;
  const arr=await catalogPromise();if(primary!==d)return;
  if(!arr.length){$("le-lens-heading").textContent="Region catalog unavailable";$("le-lens-why").textContent="The existing hourly forecast above remains available.";return}
  const id=suggested(),select=$("le-lens-select");select.replaceChildren();

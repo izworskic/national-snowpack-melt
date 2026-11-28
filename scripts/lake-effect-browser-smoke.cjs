@@ -408,7 +408,17 @@ const server=http.createServer((req,res)=>{
    assert.equal(await page.locator("#snow-signal").innerText(),"Not verified");
    assert.match(await page.locator("#forecast-story-lead").innerText(),/don't have enough fresh NWS information/i);
    assert.match(await page.locator("#forecast-story-why").innerText(),/gap in the data is not evidence of calm weather/i);
-   assert.equal(await page.locator("#forecast-coverage").innerText(),"3 of 12 hours");
+   // The fixture has three dated rows, but none is admissible as a current forecast.
+   assert.equal(await page.locator("#forecast-coverage").innerText(),"0 of 12 hours");
+   assert.equal(await page.locator("#matched").innerText(),"Not verified");
+   assert.equal(await page.locator("#le-lens-heading").innerText(),"NWS forecast hours unavailable");
+   assert.equal(await page.locator("#le-lens-a-choice").innerText(),REGIONS.find(r=>r.id==="mi-traverse").name);
+   for(const id of ["le-lens-slider","le-lens-play","le-lens-select","le-lens-toggle"])assert.equal(await page.locator("#"+id).isDisabled(),true);
+   assert.match(await page.locator("#le-lens-a-state").innerText(),/cannot be verified/);
+   assert.match(await page.locator("#le-lens-b-state").innerText(),/cannot be verified/);
+   assert.equal(await page.locator("#le-lens-evidence-a span").count(),0);
+   assert.equal(await page.locator("#le-lens-evidence-b span").count(),0);
+   assert.equal(await page.locator("#le-lens-map-holder").isVisible(),false);
    assert.equal(await page.locator("#evidence-freshness").innerText(),"Stale or unverified");
   assert.match(await page.locator("#story-decision-title").innerText(),/fresh check/);
   assert.match(await page.locator("#story-decision-copy").innerText(),/incomplete or stale/);

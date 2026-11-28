@@ -107,6 +107,18 @@ function renderUpperAir(d){
  box.appendChild(child("p","The water value is a dated lakewide average; air and shear are coarse GFS model values. Inversions, humidity and local fetch remain unresolved.","small"));
  const cite=child("a","NOAA GFS pressure-level model data");cite.href="https://nomads.ncep.noaa.gov/";cite.target="_blank";cite.rel="noopener";box.appendChild(cite);
 }
+// A cached response can outlive the source decision. The API's edge cache is
+// 20 minutes plus 30 minutes stale revalidation; forecast issue age is separate.
+function guardForecast(d,now=Date.now()){
+ const sampled=Date.parse(d.generated_at||""),issued=Date.parse(d.forecast_updated||"");
+ const packetFresh=Number.isFinite(sampled)&&sampled<=now+60000&&now-sampled<=50*60000;
+ const forecastFresh=Number.isFinite(issued)&&issued<=now+3600000&&now-issued<=12*3600000;
+ if(packetFresh&&forecastFresh)return d;
+ const v=d.verdict||{},warn=packetFresh&&v.official_warning===true,alert=packetFresh&&v.official_lake_effect_alert===true;
+ return {...d,forecast_updated:packetFresh?d.forecast_updated:null,hours:[],
+  verdict:{level:warn||alert?"winter-hazard":"insufficient",headline:warn?"Official winter warning; forecast unavailable":alert?"Official lake-effect alert; forecast unavailable":"Current forecast unavailable",data_ok:false,official_snow_forecast:null,official_warning:warn,official_lake_effect_alert:alert,impact:"No current hourly snow decision. Check official NWS alerts and forecast before travel.",timing_window:"No verified forecast window",first_12h:{},next_72h:{},windows:[]},
+  ...(!packetFresh?{alerts:[],alerts_status:"unavailable",lake_temperature:{status:"unavailable"},lake_ice_reference:{status:"unavailable"},wssi_impact:{status:"unavailable"},upper_air:{status:"unavailable"},observed_snowfall:{status:"unavailable"}}:{})};
+}
 // Visitor-facing status separates forecast completeness from actual snow signals.
 function evidenceReadout(d,now=Date.now()){
  const v=d.verdict||{},first=v.first_12h||{};
@@ -198,6 +210,7 @@ function forecastStory(d,evidence){
  return {lead,why,next};
 }
 function render(d){
+ d=guardForecast(d);
  const v=d.verdict||{},region=d.region||{};
  const evidence=evidenceReadout(d);
  const story=forecastStory(d,evidence);
@@ -208,7 +221,7 @@ function render(d){
  text("forecast-coverage",evidence.coverage);
  text("snow-signal",evidence.snow);text("snow-signal-detail",evidence.detail);
  text("evidence-freshness",evidence.freshness);text("freshness-detail",evidence.freshnessDetail);
- text("matched",label(v.first_12h?.overlap_hours,"0")+" of "+label(v.first_12h?.valid_hours,"0")+" forecast hours");
+ text("matched",Number.isFinite(v.first_12h?.overlap_hours)&&Number.isFinite(v.first_12h?.valid_hours)?v.first_12h.overlap_hours+" of "+v.first_12h.valid_hours+" forecast hours":"Not verified");
  text("alert-count",d.alerts_status==="available"?String(d.alerts?.length||0):"Unknown");
  text("alert-status",d.alerts_status==="available"?(d.alerts?.length?" · Check current NWS notices.":" · None returned at this point."):" · Alert source unavailable; verify with NWS.");
  text("method",(region.description||region.name)+". Forecast coverage and NWS freshness describe source availability, not snowfall probability or exact snowband placement."+(v.first_12h?.wind_unknown_hours>0?" Wind evidence is missing for "+v.first_12h.wind_unknown_hours+" of the first "+v.first_12h.valid_hours+" forecast hours.":""));
@@ -251,7 +264,7 @@ async function selectRegion(id){
   const data=await res.json();if(seq!==requestId)return;
   if(data.status!=="ok")throw Error("Current conditions not verified");
   render(data);
-  status("Using NWS forecast for "+r.name+". This is a regional signal, not a band track.");
+  status(guardForecast(data).verdict.data_ok===false&&guardForecast(data).hours.length===0?"Current forecast unavailable for "+r.name+". Check official NWS guidance.":"Using NWS forecast for "+r.name+". This is a regional signal, not a band track.");
   const u=new URL(location.href);u.searchParams.set("region",id);history.replaceState(null,"",u);
  }catch(err){if(seq!==requestId)return;$("dashboard").hidden=true;status("Forecast unavailable: "+label(err.message)+ " Check your NWS forecast before travel.",true)}
 }

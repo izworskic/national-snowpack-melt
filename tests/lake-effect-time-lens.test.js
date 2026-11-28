@@ -4,6 +4,7 @@ const rules=require("../public/assets/lake-effect-time-lens.js");
 const NOW=Date.parse("2026-12-12T12:00:00Z"),AT="2026-12-12T15:00:00.000Z";
 function point(name,snow,wind,{stale=false,missing=false,alerts=true}={}){
  return {status:"ok",region:{id:name,name,lat:45,lon:-85},
+  generated_at:new Date(NOW-5*60000).toISOString(),
   forecast_updated:new Date(NOW-(stale?13:2)*3600000).toISOString(),
   verdict:{data_ok:true,official_warning:false},alerts_status:alerts?"available":"unavailable",
   hours:missing?[]:[{at:AT,forecast_snow:snow,wind_aligned:wind,wind_from:"WNW",temperature_f:24,short_forecast:snow?"Snow Showers Likely":"Mostly Cloudy"}]};
@@ -13,6 +14,10 @@ test("only fresh verified NWS point forecasts are considered",()=>{
  assert.equal(rules.verified(point("A",true,true,{stale:true}),NOW),false);
  const incomplete=point("A",true,true);incomplete.verdict.data_ok=false;
  assert.equal(rules.verified(incomplete,NOW),false);
+ const expired=point("A",true,true);expired.generated_at=new Date(NOW-51*60000).toISOString();
+ assert.equal(rules.verified(expired,NOW),false);
+ assert.equal(rules.signal(expired,AT,NOW).rank,null);
+ delete expired.generated_at;assert.equal(rules.verified(expired,NOW),false);
  assert.equal(rules.signal(point("A",true,true,{stale:true}),AT,NOW).rank,null);
 });
 test("wind alone never becomes forecast snow, and exact hour must exist",()=>{

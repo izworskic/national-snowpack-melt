@@ -393,10 +393,15 @@ document.addEventListener("DOMContentLoaded",function(){
     if(s.swe)bits.push("SWE "+s.swe.value+" "+s.swe.unit+(s.swe.change_3d!=null?" · "+(s.swe.change_3d>0?"+":"")+s.swe.change_3d+" recent change":""));
     return '<div class="source-box"><span class="tool-kicker">NRCS SNOTEL</span><h3>'+N.esc(s.station.name)+'</h3><p>'+N.esc(bits.join(" · ")||"Snow values unavailable")+'</p><small>'+N.esc(s.station.distance_miles+" mi away · "+(s.station.elevation_ft||"")+" ft elevation")+'</small></div>';
   }
+  function hoursMetric(v){return Number.isInteger(v)&&v>=0&&v<=48?v+" hr":"Unavailable"}
+  let requestId=0;
   async function run(loc){
+    const seq=++requestId;
+    document.getElementById("result").hidden=true;
     const params=new URLSearchParams({lat:loc.latitude,lon:loc.longitude});if(loc.stateCode)params.set("state",loc.stateCode);
     const r=await fetch("/api/national-snow?"+params.toString());
     const d=await N.readJsonResponse(r,"Snowpack data unavailable");
+    if(seq!==requestId)return;
     document.getElementById("result").hidden=false;
     document.getElementById("level").textContent=(d.decision.level||"context").replace(/-/g," ");
     document.getElementById("confidence").textContent=(d.decision.confidence||"unknown")+" confidence";
@@ -407,9 +412,9 @@ document.addEventListener("DOMContentLoaded",function(){
     const noaa=d.nohrsc||{};
     document.getElementById("pack-grid").innerHTML=obsCard("NOHRSC snow depth",noaa.depth)+obsCard("NOHRSC snow-water equivalent",noaa.swe)+snotelCard(d.snotel);
     const f=d.forecast_48h||{};
-    document.getElementById("forecast-grid").innerHTML=metric(f.max_temperature_f==null?"Unavailable":f.max_temperature_f+"°F","48h high")+metric(f.min_temperature_f==null?"Unavailable":f.min_temperature_f+"°F","48h low")+metric((f.above_freezing_hours||0)+" hr","above freezing")+metric((f.freezing_hours||0)+" hr","at/below freezing")+metric((f.rain_signal_hours||0)+" hr","rain signal")+metric((f.snow_signal_hours||0)+" hr","snow signal");
+    document.getElementById("forecast-grid").innerHTML=metric(f.max_temperature_f==null?"Unavailable":f.max_temperature_f+"°F","48h high")+metric(f.min_temperature_f==null?"Unavailable":f.min_temperature_f+"°F","48h low")+metric(hoursMetric(f.above_freezing_hours),"above freezing")+metric(hoursMetric(f.freezing_hours),"at/below freezing")+metric(hoursMetric(f.rain_signal_hours),"rain signal")+metric(hoursMetric(f.snow_signal_hours),"snow signal");
     const extra=[];if(f.first_thaw_time)extra.push("First forecast thaw crossing "+N.fmtInZone(f.first_thaw_time,loc.timeZone,{weekday:"short",hour:"numeric"}));if(f.first_refreeze_time)extra.push("First forecast refreeze crossing "+N.fmtInZone(f.first_refreeze_time,loc.timeZone,{weekday:"short",hour:"numeric"}));
-    document.getElementById("forecast-extra").textContent=extra.join(" · ")||"No freeze/thaw crossing identified in the available 48-hour series.";
+    document.getElementById("forecast-extra").textContent=extra.join(" · ")||(Number.isInteger(f.hours)&&f.hours>0?"No freeze/thaw crossing identified in the available 48-hour series.":"Hourly forecast unavailable; freeze/thaw crossings cannot be assessed.");
     const stale=(d.sources||[]).filter(function(s){return s.stale===true}).length;
     document.getElementById("updated").textContent="Retrieved "+N.fmtDate(d.retrieved_at)+(d.degraded?" · one or more source families degraded":"")+(stale?" · "+stale+" stale source family":"");
     if(typeof N.track==="function")N.track("National Snow Result",{relevant:Boolean(d.snow_relevant),pack:Boolean(d.pack_available),level:d.decision.level||"unknown",sources_available:(d.sources||[]).filter(function(s){return s.available!==false}).length});
